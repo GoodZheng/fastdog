@@ -1,0 +1,54 @@
+# FastDog .gitignore
+
+# Exclude grepWin directory
+grepWin/
+
+# Binaries and build artifacts
+**/bin/
+**/obj/
+**/packages/
+
+# Visual Studio
+.vs/
+*.vsix
+*.userosscache
+*.suo
+*.cache
+*.pdb
+
+# Rider
+.idea/
+*.sln.iml
+
+# Windows
+[Dd]esktop.ini
+$RECYCLE.BIN/
+Thumbs.db
+Desktop.ini
+
+# JetBrains ReSharper
+*_.*
+
+.resharper/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+[Aa]rtifacts/
+
+# NuGet package directory
+*.nupkg
+*.snupkg
+package-lock.json
+
+# Visual Studio Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Project-specific
+*.log
+temp/
+tmp/
