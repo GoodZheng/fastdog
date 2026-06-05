@@ -1,6 +1,7 @@
 <Window x:Class="FastDog.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         Title="FastDog - 文本搜索" Height="650" Width="1000"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         DataContext="{StaticResource MainViewModel}">
@@ -131,22 +132,85 @@
 
             <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"/>
 
-            <!-- 行内容预览 -->
-            <ListBox Grid.Row="2"
-                     ItemsSource="{Binding MatchLines}"
-                     SelectedItem="{Binding SelectedMatchLine}"
-                     MouseDoubleClick="MatchList_MouseDoubleClick">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding LineNumber}" Width="50"
-                                       Foreground="Gray" FontWeight="Bold"
-                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding LineText}" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <!-- 行内容预览（左右拆分） -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="35*" MinWidth="200"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="65*" MinWidth="300"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧：匹配行列表 -->
+                <ListBox Grid.Column="0"
+                         ItemsSource="{Binding MatchLines}"
+                         SelectedItem="{Binding SelectedMatchLine}"
+                         MouseDoubleClick="MatchList_MouseDoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding LineNumber}" Width="50"
+                                           Foreground="Gray" FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding LineText}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"/>
+
+                <!-- 右侧：文件预览 -->
+                <Grid Grid.Column="2">
+                    <!-- 正常预览 -->
+                    <avalonedit:TextEditor Name="PreviewEditor"
+                        IsReadOnly="True"
+                        ShowLineNumbers="True"
+                        WordWrap="False"
+                        FontFamily="Consolas"
+                        FontSize="12"/>
+
+                    <!-- 二进制文件提示 -->
+                    <TextBlock Text="二进制文件，无法预览"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="Gray" FontSize="14">
+                        <TextBlock.Visibility>
+                            <Binding Path="IsBinaryFile">
+                                <Binding.Converter>
+                                    <BooleanToVisibilityConverter/>
+                                </Binding.Converter>
+                            </Binding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+
+                    <!-- 错误提示 -->
+                    <TextBlock Text="{Binding FileErrorMessage}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="Gray" FontSize="14">
+                        <TextBlock.Visibility>
+                            <Binding Path="IsFileError">
+                                <Binding.Converter>
+                                    <BooleanToVisibilityConverter/>
+                                </Binding.Converter>
+                            </Binding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+
+                    <!-- 截断提示 -->
+                    <TextBlock Text="文件过大，仅显示部分内容"
+                               HorizontalAlignment="Right" VerticalAlignment="Top"
+                               Foreground="Orange" FontSize="11" Margin="4"
+                               Panel.ZIndex="1">
+                        <TextBlock.Visibility>
+                            <Binding Path="IsFileTruncated">
+                                <Binding.Converter>
+                                    <BooleanToVisibilityConverter/>
+                                </Binding.Converter>
+                            </Binding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+                </Grid>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>
