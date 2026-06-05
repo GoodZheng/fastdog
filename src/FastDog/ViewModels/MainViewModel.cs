@@ -11,6 +11,7 @@ namespace FastDog.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly SearchService _searchService = new();
+    private readonly FilePreviewService _previewService = new();
 
     // --- 搜索条件 ---
     [ObservableProperty] private string _searchPath = string.Empty;
@@ -39,6 +40,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _totalMatches = 0;
     [ObservableProperty] private string _elapsedTime = string.Empty;
 
+    // --- 文件预览 ---
+    [ObservableProperty] private string _fileContent = string.Empty;
+    [ObservableProperty] private string _filePath = string.Empty;
+    [ObservableProperty] private bool _isBinaryFile = false;
+    [ObservableProperty] private bool _isFileError = false;
+    [ObservableProperty] private string _fileErrorMessage = string.Empty;
+    [ObservableProperty] private bool _isFileTruncated = false;
+
     public MainViewModel()
     {
         _searchService.ResultReceived += OnResultReceived;
@@ -46,14 +55,66 @@ public partial class MainViewModel : ObservableObject
         _searchService.SearchCancelled += OnSearchCancelled;
     }
 
+    public event Action<int>? ScrollToLineRequested;
+
     partial void OnSelectedResultChanged(SearchResult? value)
     {
         MatchLines.Clear();
-        if (value is not null)
+        FileContent = string.Empty;
+        FilePath = string.Empty;
+        IsBinaryFile = false;
+        IsFileError = false;
+        FileErrorMessage = string.Empty;
+        IsFileTruncated = false;
+
+        if (value is null) return;
+
+        // 填充匹配行
+        foreach (var match in value.Matches)
+            MatchLines.Add(match);
+
+        // 检测二进制文件
+        if (_previewService.IsBinaryFile(value.FilePath))
         {
-            foreach (var match in value.Matches)
-                MatchLines.Add(match);
+            IsBinaryFile = true;
+            return;
         }
+
+        // 加载文件内容
+        var content = _previewService.LoadFileContent(value.FilePath, out var truncated);
+        if (content is null)
+        {
+            if (!File.Exists(value.FilePath))
+            {
+                IsFileError = true;
+                FileErrorMessage = "文件未找到";
+            }
+            else
+            {
+                IsFileError = true;
+                FileErrorMessage = "无法读取文件";
+            }
+            return;
+        }
+
+        IsFileTruncated = truncated;
+        FilePath = value.FilePath;
+        FileContent = content;
+
+        // 计算全局偏移
+        var lineLengths = _previewService.ComputeLineLengths(content);
+        foreach (var match in value.Matches)
+        {
+            var (start, end) = _previewService.ComputeGlobalOffset(lineLengths, match);
+            match.GlobalMatchStart = start;
+            match.GlobalMatchEnd = end;
+        }
+    }
+
+    partial void OnSelectedMatchLineChanged(MatchLine? value)
+    {
+        if (value is not null)
+            ScrollToLineRequested?.Invoke(value.LineNumber);
     }
 
     // --- 命令 ---
