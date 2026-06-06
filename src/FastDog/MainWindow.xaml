@@ -9,20 +9,6 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </Window.Resources>
     <DockPanel>
-        <!-- 会话恢复提示条 -->
-        <Border DockPanel.Dock="Top" Background="#E8F5E9" BorderBrush="#C8E6C9"
-                BorderThickness="0,0,0,1" Padding="10,6"
-                Visibility="{Binding IsSessionRestored, Converter={StaticResource BoolToVis}}">
-            <Grid>
-                <TextBlock Text="已恢复上次关闭时的搜索状态" Foreground="#2E7D32" FontSize="12"
-                           VerticalAlignment="Center"/>
-                <Button HorizontalAlignment="Right" Content="关闭" Padding="8,2"
-                        Command="{Binding DismissSessionBarCommand}"
-                        Background="Transparent" BorderBrush="#A5D6A7" Foreground="#388E3C"
-                        FontSize="11" Cursor="Hand"/>
-            </Grid>
-        </Border>
-
         <!-- 搜索条件区 -->
         <Border DockPanel.Dock="Top" BorderBrush="#DDD" BorderThickness="0,0,0,1"
                 Padding="10,8">

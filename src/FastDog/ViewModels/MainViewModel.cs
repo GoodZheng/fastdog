@@ -71,6 +71,7 @@ public partial class MainViewModel : ObservableObject
         {
             RestoreFromEntry(lastSession);
             IsSessionRestored = true;
+            StatusText = "已恢复上次关闭时的搜索状态";
         }
     }
 
@@ -134,6 +135,22 @@ public partial class MainViewModel : ObservableObject
     {
         if (value is not null)
             ScrollToLineRequested?.Invoke(value.LineNumber);
+    }
+
+    partial void OnSearchPathChanged(string value) => ClearSessionRestore();
+    partial void OnSearchTextChanged(string value) => ClearSessionRestore();
+    partial void OnIsRegexChanged(bool value) => ClearSessionRestore();
+    partial void OnCaseSensitiveChanged(bool value) => ClearSessionRestore();
+    partial void OnWholeWordChanged(bool value) => ClearSessionRestore();
+    partial void OnFileFilterChanged(string value) => ClearSessionRestore();
+
+    private void ClearSessionRestore()
+    {
+        if (IsSessionRestored)
+        {
+            IsSessionRestored = false;
+            StatusText = "就绪";
+        }
     }
 
     // --- 命令 ---
@@ -307,12 +324,6 @@ public partial class MainViewModel : ObservableObject
     {
         _historyService.ClearHistory();
         HistoryEntries.Clear();
-    }
-
-    [RelayCommand]
-    private void DismissSessionBar()
-    {
-        IsSessionRestored = false;
     }
 
     // --- 事件处理 ---
