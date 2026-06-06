@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using FastDog.Models;
 using FastDog.ViewModels;
 using FastDog.Services;
 using ICSharpCode.AvalonEdit;
@@ -109,13 +112,13 @@ public partial class MainWindow : Window
         return this.FindName("PreviewEditor") as TextEditor;
     }
 
-    private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is MainViewModel vm)
             vm.OpenFileCommand.Execute(null);
     }
 
-    private void MatchList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void MatchList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is MainViewModel vm)
             vm.OpenFileAtLineCommand.Execute(null);
@@ -142,25 +145,77 @@ public partial class MainWindow : Window
         }
     }
 
+    private void TabResults_Checked(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.IsHistoryTab = false;
+    }
+
+    private void TabHistory_Checked(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.IsHistoryTab = true;
+    }
+
+    private void FileFilterButton_Click(object sender, RoutedEventArgs e)
+    {
+        FileFilterButton.Visibility = Visibility.Collapsed;
+        FileFilterTextBox.Visibility = Visibility.Visible;
+        FileFilterTextBox.Focus();
+        FileFilterTextBox.SelectAll();
+    }
+
+    private void FileFilterTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        FileFilterButton.Visibility = Visibility.Visible;
+        FileFilterTextBox.Visibility = Visibility.Collapsed;
+    }
+
+    private void FileFilterTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            FileFilterButton.Visibility = Visibility.Visible;
+            FileFilterTextBox.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ExcludeButton_Click(object sender, RoutedEventArgs e)
+    {
+        ExcludeButton.Visibility = Visibility.Collapsed;
+        ExcludeTextBox.Visibility = Visibility.Visible;
+        ExcludeTextBox.Focus();
+        ExcludeTextBox.SelectAll();
+    }
+
+    private void ExcludeTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ExcludeButton.Visibility = Visibility.Visible;
+        ExcludeTextBox.Visibility = Visibility.Collapsed;
+    }
+
+    private void ExcludeTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ExcludeButton.Visibility = Visibility.Visible;
+            ExcludeTextBox.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void HistoryCard_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is SearchHistoryEntry entry)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.UseHistoryEntryCommand.Execute(entry);
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         if (DataContext is MainViewModel vm)
             vm.SaveSession();
         base.OnClosed(e);
-    }
-
-    private void HistoryDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.UseHistoryCommand.Execute(null);
-    }
-
-    private void MenuItem_SearchWithHistory(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.UseHistoryCommand.Execute(null);
-            vm.SearchCommand.Execute(null);
-        }
     }
 }
