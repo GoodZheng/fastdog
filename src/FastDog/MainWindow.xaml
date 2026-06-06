@@ -5,7 +5,24 @@
         Title="FastDog - 文本搜索" Height="650" Width="1000"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         DataContext="{StaticResource MainViewModel}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <DockPanel>
+        <!-- 会话恢复提示条 -->
+        <Border DockPanel.Dock="Top" Background="#E8F5E9" BorderBrush="#C8E6C9"
+                BorderThickness="0,0,0,1" Padding="10,6"
+                Visibility="{Binding IsSessionRestored, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <TextBlock Text="已恢复上次关闭时的搜索状态" Foreground="#2E7D32" FontSize="12"
+                           VerticalAlignment="Center"/>
+                <Button HorizontalAlignment="Right" Content="关闭" Padding="8,2"
+                        Command="{Binding DismissSessionBarCommand}"
+                        Background="Transparent" BorderBrush="#A5D6A7" Foreground="#388E3C"
+                        FontSize="11" Cursor="Hand"/>
+            </Grid>
+        </Border>
+
         <!-- 搜索条件区 -->
         <Border DockPanel.Dock="Top" BorderBrush="#DDD" BorderThickness="0,0,0,1"
                 Padding="10,8">
@@ -32,7 +49,9 @@
                         Command="{Binding BrowseCommand}" Margin="6,2,0,2" Padding="12,2"/>
 
                 <!-- Row 1: 搜索内容 + 选项 -->
-                <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="搜索内容:"
+                           VerticalAlignment="Center" Margin="0,4,6,0"/>
+                <TextBox Grid.Row="1" Grid.Column="1"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          Margin="0,4,0,0"/>
                 <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal"
@@ -98,119 +117,184 @@
             </StatusBarItem>
         </StatusBar>
 
-        <!-- 中间：结果区 -->
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="2*"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <!-- 中间：结果区（使用TabControl） -->
+        <TabControl>
+            <!-- TabItem 1: 搜索结果 -->
+            <TabItem Header="搜索结果">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-            <!-- 文件列表 -->
-            <DataGrid Grid.Row="0"
-                      ItemsSource="{Binding SearchResults}"
-                      SelectedItem="{Binding SelectedResult}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      MouseDoubleClick="DataGrid_MouseDoubleClick">
-                <DataGrid.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="打开文件" Command="{Binding OpenFileCommand}"/>
-                        <MenuItem Header="复制路径" Command="{Binding CopyPathCommand}"/>
-                        <MenuItem Header="复制文件名" Command="{Binding CopyFileNameCommand}"/>
-                    </ContextMenu>
-                </DataGrid.ContextMenu>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="文件名" Binding="{Binding FileName}" Width="200"/>
-                    <DataGridTextColumn Header="大小" Binding="{Binding FileSize, StringFormat='{}{0:N0}'}" Width="80"/>
-                    <DataGridTextColumn Header="匹配数" Binding="{Binding MatchCount}" Width="60"/>
-                    <DataGridTextColumn Header="路径" Binding="{Binding RelativePath}" Width="*"/>
-                    <DataGridTextColumn Header="修改时间" Binding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
-                </DataGrid.Columns>
-            </DataGrid>
+                    <!-- 文件列表 -->
+                    <DataGrid Grid.Row="0"
+                              ItemsSource="{Binding SearchResults}"
+                              SelectedItem="{Binding SelectedResult}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="打开文件" Command="{Binding OpenFileCommand}"/>
+                                <MenuItem Header="复制路径" Command="{Binding CopyPathCommand}"/>
+                                <MenuItem Header="复制文件名" Command="{Binding CopyFileNameCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="文件名" Binding="{Binding FileName}" Width="200"/>
+                            <DataGridTextColumn Header="大小" Binding="{Binding FileSize, StringFormat='{}{0:N0}'}" Width="80"/>
+                            <DataGridTextColumn Header="匹配数" Binding="{Binding MatchCount}" Width="60"/>
+                            <DataGridTextColumn Header="路径" Binding="{Binding FilePath}" Width="*"/>
+                            <DataGridTextColumn Header="修改时间" Binding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
 
-            <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"/>
+                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"/>
 
-            <!-- 行内容预览（左右拆分） -->
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="35*" MinWidth="200"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="65*" MinWidth="300"/>
-                </Grid.ColumnDefinitions>
+                    <!-- 行内容预览（左右拆分） -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="35*" MinWidth="200"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="65*" MinWidth="300"/>
+                        </Grid.ColumnDefinitions>
 
-                <!-- 左侧：匹配行列表 -->
-                <ListBox Grid.Column="0"
-                         ItemsSource="{Binding MatchLines}"
-                         SelectedItem="{Binding SelectedMatchLine}"
-                         MouseDoubleClick="MatchList_MouseDoubleClick">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding LineNumber}" Width="50"
-                                           Foreground="Gray" FontWeight="Bold"
-                                           VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding LineText}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                        <!-- 左侧：匹配行列表 -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#F0F0F0" Padding="8,4"
+                                    BorderBrush="#DDD" BorderThickness="0,0,0,1">
+                                <TextBlock Text="匹配行" FontWeight="SemiBold" FontSize="12" Foreground="#555"/>
+                            </Border>
+                            <ListBox Grid.Row="1"
+                                     ItemsSource="{Binding MatchLines}"
+                                     SelectedItem="{Binding SelectedMatchLine}"
+                                     MouseDoubleClick="MatchList_MouseDoubleClick"
+                                     FontFamily="Consolas" FontSize="12"
+                                     BorderThickness="0">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="2,1"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding LineNumber}"
+                                                       Foreground="Gray"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding LineText}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
 
-                <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"/>
+                        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"/>
 
-                <!-- 右侧：文件预览 -->
-                <Grid Grid.Column="2">
-                    <!-- 正常预览 -->
-                    <avalonedit:TextEditor Name="PreviewEditor"
-                        IsReadOnly="True"
-                        ShowLineNumbers="True"
-                        WordWrap="False"
-                        FontFamily="Consolas"
-                        FontSize="12"/>
+                        <!-- 右侧：文件预览 -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#F0F0F0" Padding="8,4"
+                                    BorderBrush="#DDD" BorderThickness="0,0,0,1">
+                                <TextBlock Text="文件预览" FontWeight="SemiBold" FontSize="12" Foreground="#555"/>
+                            </Border>
+                            <Grid Grid.Row="1">
+                            <!-- 正常预览 -->
+                            <avalonedit:TextEditor Name="PreviewEditor"
+                                IsReadOnly="True"
+                                ShowLineNumbers="True"
+                                WordWrap="False"
+                                FontFamily="Consolas"
+                                FontSize="12"/>
 
-                    <!-- 二进制文件提示 -->
-                    <TextBlock Text="二进制文件，无法预览"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="Gray" FontSize="14">
-                        <TextBlock.Visibility>
-                            <Binding Path="IsBinaryFile">
-                                <Binding.Converter>
-                                    <BooleanToVisibilityConverter/>
-                                </Binding.Converter>
-                            </Binding>
-                        </TextBlock.Visibility>
-                    </TextBlock>
+                            <!-- 二进制文件提示 -->
+                            <TextBlock Text="二进制文件，无法预览"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="Gray" FontSize="14">
+                                <TextBlock.Visibility>
+                                    <Binding Path="IsBinaryFile">
+                                        <Binding.Converter>
+                                            <BooleanToVisibilityConverter/>
+                                        </Binding.Converter>
+                                    </Binding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
 
-                    <!-- 错误提示 -->
-                    <TextBlock Text="{Binding FileErrorMessage}"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="Gray" FontSize="14">
-                        <TextBlock.Visibility>
-                            <Binding Path="IsFileError">
-                                <Binding.Converter>
-                                    <BooleanToVisibilityConverter/>
-                                </Binding.Converter>
-                            </Binding>
-                        </TextBlock.Visibility>
-                    </TextBlock>
+                            <!-- 错误提示 -->
+                            <TextBlock Text="{Binding FileErrorMessage}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="Gray" FontSize="14">
+                                <TextBlock.Visibility>
+                                    <Binding Path="IsFileError">
+                                        <Binding.Converter>
+                                            <BooleanToVisibilityConverter/>
+                                        </Binding.Converter>
+                                    </Binding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
 
-                    <!-- 截断提示 -->
-                    <TextBlock Text="文件过大，仅显示部分内容"
-                               HorizontalAlignment="Right" VerticalAlignment="Top"
-                               Foreground="Orange" FontSize="11" Margin="4"
-                               Panel.ZIndex="1">
-                        <TextBlock.Visibility>
-                            <Binding Path="IsFileTruncated">
-                                <Binding.Converter>
-                                    <BooleanToVisibilityConverter/>
-                                </Binding.Converter>
-                            </Binding>
-                        </TextBlock.Visibility>
-                    </TextBlock>
+                            <!-- 截断提示 -->
+                            <TextBlock Text="文件过大，仅显示部分内容"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top"
+                                       Foreground="Orange" FontSize="11" Margin="4"
+                                       Panel.ZIndex="1">
+                                <TextBlock.Visibility>
+                                    <Binding Path="IsFileTruncated">
+                                        <Binding.Converter>
+                                            <BooleanToVisibilityConverter/>
+                                        </Binding.Converter>
+                                    </Binding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
+                            </Grid>
+                        </Grid>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </Grid>
+            </TabItem>
+
+            <!-- TabItem 2: 搜索历史 -->
+            <TabItem Header="搜索历史">
+                <DataGrid ItemsSource="{Binding HistoryEntries}"
+                          SelectedItem="{Binding SelectedHistoryEntry}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          MouseDoubleClick="HistoryDataGrid_MouseDoubleClick">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="使用此条件" Command="{Binding UseHistoryCommand}"/>
+                            <MenuItem Header="使用此条件并搜索" Click="MenuItem_SearchWithHistory"/>
+                            <Separator/>
+                            <MenuItem Header="删除" Command="{Binding DeleteHistoryCommand}"/>
+                            <MenuItem Header="清空所有历史" Command="{Binding ClearHistoryCommand}"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="搜索内容" Binding="{Binding SearchText}" Width="*" FontFamily="Consolas"/>
+                        <DataGridTextColumn Header="路径" Binding="{Binding SearchPath}" Width="250"/>
+                        <DataGridTextColumn Header="选项" Binding="{Binding OptionsSummary}" Width="160"/>
+                        <DataGridTextColumn Header="结果" Binding="{Binding ResultSummary}" Width="200"/>
+                        <DataGridTextColumn Header="时间" Binding="{Binding SearchedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="130"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>
