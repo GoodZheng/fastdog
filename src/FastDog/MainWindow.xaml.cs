@@ -141,4 +141,26 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.SaveSession();
+        base.OnClosed(e);
+    }
+
+    private void HistoryDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.UseHistoryCommand.Execute(null);
+    }
+
+    private void MenuItem_SearchWithHistory(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.UseHistoryCommand.Execute(null);
+            vm.SearchCommand.Execute(null);
+        }
+    }
 }

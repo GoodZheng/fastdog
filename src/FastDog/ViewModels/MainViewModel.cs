@@ -12,6 +12,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly SearchService _searchService = new();
     private readonly FilePreviewService _previewService = new();
+    private readonly SearchHistoryService _historyService = new();
 
     // --- 搜索条件 ---
     [ObservableProperty] private string _searchPath = string.Empty;
@@ -39,6 +40,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _totalFiles = 0;
     [ObservableProperty] private int _totalMatches = 0;
     [ObservableProperty] private string _elapsedTime = string.Empty;
+    [ObservableProperty] private long _searchedFiles = 0;
 
     // --- 文件预览 ---
     [ObservableProperty] private string _fileContent = string.Empty;
@@ -48,11 +50,28 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _fileErrorMessage = string.Empty;
     [ObservableProperty] private bool _isFileTruncated = false;
 
+    // --- 搜索历史 ---
+    public ObservableCollection<SearchHistoryEntry> HistoryEntries { get; } = [];
+    [ObservableProperty] private SearchHistoryEntry? _selectedHistoryEntry;
+    [ObservableProperty] private bool _isSessionRestored;
+
     public MainViewModel()
     {
         _searchService.ResultReceived += OnResultReceived;
         _searchService.SearchCompleted += OnSearchCompleted;
         _searchService.SearchCancelled += OnSearchCancelled;
+
+        // 加载历史到 UI
+        foreach (var entry in _historyService.LoadHistory())
+            HistoryEntries.Add(entry);
+
+        // 恢复上次会话条件
+        var lastSession = _historyService.GetLastSession();
+        if (lastSession is not null)
+        {
+            RestoreFromEntry(lastSession);
+            IsSessionRestored = true;
+        }
     }
 
     public event Action<int>? ScrollToLineRequested;
@@ -135,6 +154,7 @@ public partial class MainViewModel : ObservableObject
         MatchLines.Clear();
         TotalFiles = 0;
         TotalMatches = 0;
+        SearchedFiles = 0;
         IsSearching = true;
         StatusText = "搜索中...";
 
@@ -233,6 +253,68 @@ public partial class MainViewModel : ObservableObject
         StatusText = "已复制文件名";
     }
 
+    // --- 历史操作 ---
+
+    public void RestoreFromEntry(SearchHistoryEntry entry)
+    {
+        SearchPath = entry.SearchPath;
+        SearchText = entry.SearchText;
+        IsRegex = entry.IsRegex;
+        IsPlainText = !entry.IsRegex;
+        CaseSensitive = entry.CaseSensitive;
+        WholeWord = entry.WholeWord;
+        FileFilter = entry.FileFilter;
+        ExcludeDirs = entry.ExcludeDirs;
+        DateFilterEnabled = entry.DateFilterEnabled;
+        DateFrom = entry.DateFrom;
+        DateTo = entry.DateTo;
+    }
+
+    public void SaveSession()
+    {
+        _historyService.SaveCurrentSession(new SearchHistoryEntry
+        {
+            SearchPath = SearchPath,
+            SearchText = SearchText,
+            IsRegex = IsRegex,
+            CaseSensitive = CaseSensitive,
+            WholeWord = WholeWord,
+            FileFilter = FileFilter,
+            ExcludeDirs = ExcludeDirs,
+            DateFilterEnabled = DateFilterEnabled,
+            DateFrom = DateFrom,
+            DateTo = DateTo
+        });
+    }
+
+    [RelayCommand]
+    private void UseHistory()
+    {
+        if (SelectedHistoryEntry is null) return;
+        RestoreFromEntry(SelectedHistoryEntry);
+    }
+
+    [RelayCommand]
+    private void DeleteHistory()
+    {
+        if (SelectedHistoryEntry is null) return;
+        _historyService.DeleteEntry(SelectedHistoryEntry);
+        HistoryEntries.Remove(SelectedHistoryEntry);
+    }
+
+    [RelayCommand]
+    private void ClearHistory()
+    {
+        _historyService.ClearHistory();
+        HistoryEntries.Clear();
+    }
+
+    [RelayCommand]
+    private void DismissSessionBar()
+    {
+        IsSessionRestored = false;
+    }
+
     // --- 事件处理 ---
 
     private void OnResultReceived(SearchResult result)
@@ -245,13 +327,38 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
-    private void OnSearchCompleted(string elapsed)
+    private void OnSearchCompleted(SearchStats stats)
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             IsSearching = false;
-            ElapsedTime = elapsed;
-            StatusText = $"搜索完成 | {TotalFiles} 个文件 | {TotalMatches} 处匹配 | {elapsed}";
+            SearchedFiles = stats.SearchedFiles;
+            ElapsedTime = stats.Elapsed;
+            StatusText = $"已搜索 {stats.SearchedFiles} 个文件，找到 {stats.FoundFiles} 个文件，共 {TotalMatches} 处匹配";
+
+            // 记录搜索历史
+            var historyEntry = new SearchHistoryEntry
+            {
+                SearchPath = SearchPath,
+                SearchText = SearchText,
+                IsRegex = IsRegex,
+                CaseSensitive = CaseSensitive,
+                WholeWord = WholeWord,
+                FileFilter = FileFilter,
+                ExcludeDirs = ExcludeDirs,
+                DateFilterEnabled = DateFilterEnabled,
+                DateFrom = DateFrom,
+                DateTo = DateTo,
+                SearchedFiles = stats.SearchedFiles,
+                FoundFiles = (int)stats.FoundFiles,
+                TotalMatches = TotalMatches,
+                ElapsedTime = stats.Elapsed,
+                SearchedAt = DateTime.Now
+            };
+            var existing = HistoryEntries.FirstOrDefault(e => e.DedupKey == historyEntry.DedupKey);
+            if (existing is not null)
+                HistoryEntries.Remove(existing);
+            HistoryEntries.Insert(0, historyEntry);
         });
     }
 
@@ -260,7 +367,7 @@ public partial class MainViewModel : ObservableObject
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             IsSearching = false;
-            StatusText = $"搜索已取消 | {TotalFiles} 个文件 | {TotalMatches} 处匹配";
+            StatusText = $"搜索已取消 | 找到 {TotalFiles} 个文件，共 {TotalMatches} 处匹配";
         });
     }
 }
