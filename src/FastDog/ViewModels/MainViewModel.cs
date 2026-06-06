@@ -54,6 +54,10 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<SearchHistoryEntry> HistoryEntries { get; } = [];
     [ObservableProperty] private SearchHistoryEntry? _selectedHistoryEntry;
     [ObservableProperty] private bool _isSessionRestored;
+    [ObservableProperty] private bool _isHistoryTab;
+
+    public string FileFilterDisplay => string.IsNullOrEmpty(FileFilter) ? "文件: *" : $"文件: {FileFilter}";
+    public string ExcludeDirsDisplay => string.IsNullOrEmpty(ExcludeDirs) ? "排除: (无)" : $"排除: {ExcludeDirs}";
 
     public MainViewModel()
     {
@@ -142,7 +146,16 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsRegexChanged(bool value) => ClearSessionRestore();
     partial void OnCaseSensitiveChanged(bool value) => ClearSessionRestore();
     partial void OnWholeWordChanged(bool value) => ClearSessionRestore();
-    partial void OnFileFilterChanged(string value) => ClearSessionRestore();
+    partial void OnFileFilterChanged(string value)
+    {
+        ClearSessionRestore();
+        OnPropertyChanged(nameof(FileFilterDisplay));
+    }
+
+    partial void OnExcludeDirsChanged(string value)
+    {
+        OnPropertyChanged(nameof(ExcludeDirsDisplay));
+    }
 
     private void ClearSessionRestore()
     {
@@ -324,6 +337,19 @@ public partial class MainViewModel : ObservableObject
     {
         _historyService.ClearHistory();
         HistoryEntries.Clear();
+    }
+
+    [RelayCommand]
+    private void UseHistoryEntry(SearchHistoryEntry entry)
+    {
+        RestoreFromEntry(entry);
+    }
+
+    [RelayCommand]
+    private void SearchWithHistory(SearchHistoryEntry entry)
+    {
+        RestoreFromEntry(entry);
+        _ = SearchAsync();
     }
 
     // --- 事件处理 ---
