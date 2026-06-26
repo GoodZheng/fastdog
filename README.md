@@ -35,6 +35,8 @@
 
 ### 📸 Screenshots
 
+**Quick Search Example**
+
 <p align="center">
   <img src="src/FastDog/Assets/P1.png" alt="FastDog Main UI" width="80%">
 </p>

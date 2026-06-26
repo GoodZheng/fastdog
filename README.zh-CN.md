@@ -35,6 +35,8 @@
 
 ### 📸 界面截图
 
+**快速搜索示例**
+
 <p align="center">
   <img src="src/FastDog/Assets/P1.png" alt="FastDog 主界面" width="80%">
 </p>
