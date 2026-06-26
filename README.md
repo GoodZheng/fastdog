@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/GoodZheng/fastdog/raw/main/assets/fastdog-logo.png" alt="FastDog" width="120">
+  <img src="assets/fastdog-logo.png" alt="FastDog" width="120">
 </p>
 
 <h1 align="center">🐕 FastDog</h1>
@@ -18,22 +18,18 @@
 </p>
 
 <p align="center">
-  <a href="#english">English</a> • <a href="#chinese">中文</a>
+  <strong>English</strong> | <a href="README.zh-CN.md">中文</a>
 </p>
 
 ---
 
-## English
-
-FastDog is a lightweight desktop application that brings the power of [ripgrep](https://github.com/BurntSushi/ripgrep) to Windows users with a clean, modern interface.
-
 ### ✨ Why FastDog?
 
-- **🚀 Blazing Fast** — Powered by ripgrep, the world's fastest text search tool
+- **🚀 Blazing Fast** — Powered by [ripgrep](https://github.com/BurntSushi/ripgrep), the world's fastest text search tool
 - **🎯 Precise Control** — Regex support, case sensitivity, whole word matching
 - **📁 Smart Filtering** — Include/exclude files by pattern, skip binary files
 - **💾 Layout Persistence** — Window position and search history auto-saved
-- **🎨 Modern UI** — VS Code-inspired design with dark mode support
+- **🎨 Modern UI** — VS Code-inspired design, clean and professional
 - **📦 Single Executable** — No installation required, just download and run
 - **🔍 Instant Preview** — See matched lines in context immediately
 
@@ -49,8 +45,10 @@ FastDog is a lightweight desktop application that brings the power of [ripgrep](
 
 Grab the latest release from [GitHub Releases](https://github.com/GoodZheng/fastdog/releases):
 
-- **FastDog-Setup-{version}.exe** — Installer (recommended)
-- **FastDog-portable-{version}.zip** — Portable version
+| File | Description |
+|------|-------------|
+| `FastDog-Setup-{version}.exe` | Installer (recommended) |
+| `FastDog-portable-{version}.zip` | Portable version, extract and run |
 
 #### Build from Source
 
@@ -91,7 +89,7 @@ FastDog automatically saves:
 - Recent search history (last 50)
 - Search options and filters
 
-Data stored in `%APPDATA%\FastDog\`
+Configuration stored in `%APPDATA%\FastDog\`
 
 ### 🏗️ Tech Stack
 
@@ -136,122 +134,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ripgrep](https://github.com/BurntSushi/ripgrep) — The fastest search tool in the universe
 - [grepWin](https://github.com/stefankueng/grepWin) — Inspiration for search functionality
 - [.NET Community Toolkit](https://github.com/CommunityToolkit/dotnet) — MVVM framework
-
----
-
-## Chinese
-
-FastDog 是一个轻量级桌面应用，将 [ripgrep](https://github.com/BurntSushi/ripgrep) 的强大功能通过现代、简洁的界面带给 Windows 用户。
-
-### ✨ 为什么选择 FastDog？
-
-- **🚀 极速搜索** — 基于 ripgrep，全球最快的文本搜索工具
-- **🎯 精准控制** — 支持正则表达式、大小写敏感、全词匹配
-- **📁 智能过滤** — 按模式包含/排除文件，自动跳过二进制文件
-- **💾 布局持久化** — 窗口位置和搜索历史自动保存
-- **🎨 现代界面** — 受 VS Code 启发的设计，支持深色模式
-- **📦 单文件可执行** — 无需安装，下载即用
-- **🔍 即时预览** — 立即查看匹配行的上下文
-
-### 📸 截图
-
-<p align="center">
-  <img src="assets/screenshot-main.png" alt="FastDog 主界面" width="80%">
-</p>
-
-### 🚀 快速开始
-
-#### 下载
-
-从 [GitHub Releases](https://github.com/GoodZheng/fastdog/releases) 获取最新版本：
-
-- **FastDog-Setup-{version}.exe** — 安装版（推荐）
-- **FastDog-portable-{version}.zip** — 便携版
-
-#### 从源码构建
-
-```bash
-git clone https://github.com/GoodZheng/fastdog.git
-cd fastdog
-dotnet run --project src/FastDog
-```
-
-### 🎯 使用方法
-
-1. **设置搜索路径** — 输入目录路径或点击"浏览"
-2. **输入搜索词** — 纯文本或正则表达式
-3. **配置选项**（可选）：
-   - ☑ 区分大小写
-   - ☑ 全词匹配
-   - ☑ 正则模式
-   - 📅 日期范围过滤
-   - 📄 文件类型过滤（如 `*.cs;*.txt`）
-4. **点击搜索** — 结果立即显示
-5. **点击结果** — 查看带上下文的匹配行预览
-
-### ⌨️ 快捷键
-
-| 快捷键 | 操作 |
-|--------|------|
-| `Enter` | 开始搜索 |
-| `Esc` | 取消搜索 |
-| `双击` | 用默认编辑器打开文件 |
-| `Ctrl+C` | 复制选中的结果 |
-
-### 🔧 配置
-
-FastDog 自动保存：
-
-- 窗口位置和大小
-- 网格分割器位置
-- 最近搜索历史（最后 50 条）
-- 搜索选项和过滤器
-
-数据存储在 `%APPDATA%\FastDog\`
-
-### 🏗️ 技术栈
-
-- **.NET 8** — 现代 .NET 运行时
-- **WPF** — Windows 演示基础
-- **AvalonEdit** — 语法高亮代码预览
-- **ripgrep 14.1.1** — 核心搜索引擎（内置）
-- **CommunityToolkit.Mvvm** — MVVM 框架
-
-### 📦 项目结构
-
-```
-FastDog/
-├── src/
-│   └── FastDog/
-│       ├── MainWindow.xaml          # 主界面
-│       ├── Models/                  # 数据模型
-│       ├── Services/                # 业务逻辑
-│       ├── ViewModels/              # MVVM 视图模型
-│       └── Assets/                  # 图标和资源
-├── tools/
-│   └── rg.exe                       # 内置 ripgrep
-└── tests/
-    └── FastDog.Tests/               # 单元测试
-```
-
-### 🤝 贡献
-
-欢迎贡献！你可以：
-
-- 🐛 报告 bug
-- 💡 建议新功能
-- 🔧 提交 pull request
-- 📝 改进文档
-
-### 📄 许可证
-
-本项目基于 MIT 许可证授权 - 详见 [LICENSE](LICENSE) 文件
-
-### 🙏 致谢
-
-- [ripgrep](https://github.com/BurntSushi/ripgrep) — 宇宙中最快的搜索工具
-- [grepWin](https://github.com/stefankueng/grepWin) — 搜索功能灵感来源
-- [.NET Community Toolkit](https://github.com/CommunityToolkit/dotnet) — MVVM 框架
 
 ---
 
