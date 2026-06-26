@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>FastDog — UI 预览（VS Code 风）</title>
+<style>
+  /* ============================================================
+     新配色主题（极简素净 VS Code 风）
+     WPF 迁移时对照此处的 CSS 变量
+     ============================================================ */
+  :root {
+    --bg:            #f3f3f3;   /* 窗口底色 */
+    --panel:         #ffffff;   /* 面板/卡片/表格行 */
+    --border:        #e0e0e0;   /* 统一细线 1px */
+    --text-main:     #1e1e1e;   /* 主文字（标题、文件名） */
+    --text-body:     #6a6a6a;   /* 次文字（正文） */
+    --text-muted:    #9a9a9a;   /* 弱文字（路径、时间） */
+    --accent:        #0e639c;   /* VS Code 深青蓝强调色 */
+    --accent-bg:     #cce5ff;   /* 淡蓝选中高亮 */
+    --hover:         #e8e8e8;   /* 行/按钮 hover 背景 */
+    --danger:        #c0392b;   /* 危险/关闭 hover */
+    --statusbar:     #1e1e1e;   /* 状态栏近黑 */
+    --warn:          #b8860b;   /* 截断提示（沉稳琥珀） */
+    --radius:        4px;       /* 统一圆角 */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #2d2d2d;          /* 桌面背景，衬托窗口 */
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+
+  /* ============== 应用窗口外壳 ============== */
+  .window {
+    width: 1200px;
+    height: 800px;
+    background: var(--bg);
+    border: 1px solid #cccccc;
+    box-shadow: 0 16px 48px rgba(0,0,0,.45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 6px;           /* 窗口外圆角（仅预览用） */
+  }
+
+  /* ============================================================
+     1. 自定义标题栏（核心）
+     ============================================================ */
+  .titlebar {
+    height: 36px;
+    flex: 0 0 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: stretch;
+    user-select: none;
+  }
+  .titlebar-left {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex: 1;
+  }
+  .titlebar-icon {
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, var(--accent), #2d7fb8);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 10px; font-weight: 700;
+  }
+  .titlebar-title {
+    font-size: 12px;
+    color: var(--text-body);
+    font-weight: 500;
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .titlebar-title .brand { font-weight: 800; font-size: 13px; line-height: 1; }
+  .titlebar-title .brand .fast { color: #e74c3c; }
+  .titlebar-title .brand .dog { color: var(--text-main); }
+  .titlebar-title .ver { color: var(--text-muted); font-weight: 400; }
+
+  .titlebar-buttons {
+    display: flex;
+    align-items: stretch;
+  }
+  .caption-btn {
+    width: 46px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 12px;
+    transition: background .12s;
+  }
+  .caption-btn:hover { background: var(--hover); }
+  .caption-btn.close:hover { background: var(--danger); color: #fff; }
+  .caption-btn svg { width: 11px; height: 11px; fill: currentColor; }
+
+  /* ============================================================
+     2. 搜索条件区
+     ============================================================ */
+  .search-area {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+    flex: 0 0 auto;
+  }
+  .field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-label {
+    width: 55px;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex: 0 0 55px;
+  }
+  .input {
+    flex: 1;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 8px;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--panel);
+    display: flex; align-items: center;
+    outline: none;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input.focused {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .input .mono { font-family: Consolas, monospace; }
+
+  .btn {
+    height: 28px;
+    padding: 0 12px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text-body);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: background .12s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.browse { margin-left: 6px; flex: 0 0 auto; }
+
+  /* 选项按钮组（Toggle） */
+  .opt-group { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+  .toggle {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text-body);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: all .12s;
+  }
+  .toggle:hover { background: var(--hover); }
+  .toggle.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .toggle .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 1px solid var(--text-muted);
+  }
+  .toggle.active .dot { border-color: #fff; background: #fff; }
+
+  .divider {
+    width: 1px; height: 18px; background: var(--border); margin: 0 4px;
+  }
+
+  .tag-btn {
+    height: 26px; min-width: 120px;
+    padding: 0 8px;
+    font-size: 12px; color: var(--text-body);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--panel);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .tag-btn .x { color: var(--text-muted); margin-left: 6px; }
+  .tag-btn:hover { background: var(--hover); }
+
+  .spacer { width: 10px; }
+
+  .btn-primary {
+    height: 28px; padding: 0 18px;
+    font-size: 12px; font-weight: 600;
+    background: #27ae60; color: #fff;
+    border: 1px solid #27ae60; border-radius: var(--radius);
+    cursor: pointer; margin-left: 6px;
+  }
+  .btn-primary:hover { background: #229954; }
+  .btn-cancel {
+    height: 28px; padding: 0 14px;
+    font-size: 12px; font-weight: 600;
+    background: #e74c3c; color: #fff;
+    border: 1px solid #e74c3c; border-radius: var(--radius);
+    cursor: pointer; margin-left: 6px;
+  }
+  .btn-cancel:hover { background: #cb3527; }
+
+  .date-sep {
+    margin: 0 4px; color: var(--text-muted); font-size: 12px;
+  }
+  .date-input {
+    height: 26px; width: 118px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 0 8px; font-size: 12px; color: var(--text-main);
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--panel);
+    cursor: pointer;
+    transition: border-color .12s;
+  }
+  .date-input:hover { border-color: var(--accent); }
+  .date-input .cal { color: var(--text-muted); }
+
+  /* ============================================================
+     3. 标签栏
+     ============================================================ */
+  .tabbar {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: stretch;
+    padding-left: 16px;
+    flex: 0 0 auto;
+  }
+  .tab {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: var(--text-main); }
+  .tab.active {
+    color: var(--text-main);
+    font-weight: 600;
+    border-bottom-color: var(--accent);
+  }
+  .badge {
+    background: var(--text-muted);
+    color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 16px; text-align: center;
+  }
+  .tab.active .badge { background: var(--accent); }
+
+  /* ============================================================
+     4. 内容区
+     ============================================================ */
+  .content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  /* 文件列表 */
+  .file-table {
+    flex: 0 0 38%;
+    background: var(--panel);
+    overflow-y: auto;
+    border-bottom: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #fafafa;
+    color: var(--text-muted);
+    font-weight: 600; font-size: 12px;
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+  }
+  thead th.center { text-align: center; }
+  tbody tr { cursor: pointer; transition: background .08s; }
+  tbody tr:hover { background: var(--hover); }
+  tbody tr.selected { background: var(--accent-bg); }
+  td {
+    padding: 6px 10px;
+    color: var(--text-body);
+    border-bottom: 1px solid #f5f5f5;
+  }
+  td.fname { color: var(--text-main); font-weight: 500; }
+  td.center { text-align: center; }
+  td.path { color: var(--text-muted); }
+  td.time { color: var(--text-muted); font-size: 12px; text-align: right; }
+  .match-badge {
+    display: inline-block;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 8px; border-radius: 10px;
+  }
+
+  /* 下半区：匹配行 + 预览 */
+  .bottom {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  .panel-header {
+    background: #fafafa;
+    border-bottom: 1px solid var(--border);
+    padding: 7px 12px;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-header .count { color: var(--danger); font-weight: 700; }
+  .panel-header .sep { color: var(--text-muted); }
+
+  /* 左：匹配行 */
+  .match-panel {
+    flex: 0 0 35%;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-width: 0;
+  }
+  .match-list { flex: 1; overflow-y: auto; font-family: Consolas, monospace; font-size: 12px; background: var(--panel); }
+  .match-item {
+    padding: 5px 8px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text-body);
+  }
+  .match-item:hover { background: var(--hover); }
+  .match-item.selected {
+    background: #fffbe6;
+    border-left-color: var(--warn);
+  }
+  .match-item .ln { color: var(--text-muted); margin-right: 8px; }
+
+  /* 右：预览 */
+  .preview-panel {
+    flex: 1;
+    display: flex; flex-direction: column;
+    min-width: 0;
+    background: var(--panel);
+  }
+  .preview-wrap {
+    flex: 1;
+    display: flex; align-items: center; gap: 8px;
+    padding-right: 12px;
+  }
+  .check { font-size: 12px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .preview {
+    flex: 1; overflow: auto;
+    font-family: Consolas, "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 0 8px 0;
+    position: relative;
+  }
+  .code-line { display: flex; padding: 0 12px; white-space: pre; }
+  .code-line:hover { background: var(--hover); }
+  .ln-num { color: var(--text-muted); width: 42px; text-align: right; padding-right: 12px; user-select: none; }
+  .code-line .hl { background: #ffe082; color: inherit; }
+  .trunc-note {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 12px; color: var(--warn);
+  }
+
+  /* ============================================================
+     5. 状态栏
+     ============================================================ */
+  .statusbar {
+    height: 28px; flex: 0 0 28px;
+    background: #e8e8e8;
+    border-top: 1px solid var(--border);
+    color: #555;
+    font-size: 12px;
+    display: flex; align-items: center;
+    padding: 0 12px;
+  }
+  .statusbar .stat { margin-left: 16px; }
+  .statusbar .stat .num { color: var(--accent); font-weight: 700; }
+  .statusbar .right { margin-left: auto; display: flex; }
+
+  /* 简单语法高亮配色（预览用，接近真实编辑器） */
+  .kw { color: #569cd6; }      /* 关键字 */
+  .str { color: #ce9178; }     /* 字符串 */
+  .com { color: #6a9955; }     /* 注释 */
+  .typ { color: #4ec9b0; }     /* 类型 */
+  .fn { color: #dcdcaa; }      /* 函数 */
+</style>
+</head>
+<body>
+<div class="window">
+
+  <!-- ============== 1. 标题栏 ============== -->
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <div class="titlebar-icon">F</div>
+      <div class="titlebar-title">
+        <span class="brand"><span class="fast">Fast</span><span class="dog">Dog</span></span>
+        <span class="ver">v1.0.2 — 基于 ripgrep 的文本搜索</span>
+      </div>
+    </div>
+    <div class="titlebar-buttons">
+      <div class="caption-btn" title="最小化">
+        <svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1"/></svg>
+      </div>
+      <div class="caption-btn" title="最大化">
+        <svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+      </div>
+      <div class="caption-btn close" title="关闭">
+        <svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== 2. 搜索条件区 ============== -->
+  <div class="search-area">
+    <!-- 搜索路径 -->
+    <div class="field-row">
+      <div class="field-label">搜索路径</div>
+      <div class="input"><span class="mono">E:\demo\projects\myapp</span></div>
+      <button class="btn browse">浏览…</button>
+    </div>
+    <!-- 搜索内容 -->
+    <div class="field-row">
+      <div class="field-label">搜索内容</div>
+      <div class="input focused"><span class="mono">GetUserById</span></div>
+    </div>
+    <!-- 按钮行 -->
+    <div class="field-row">
+      <div class="opt-group">
+        <div class="toggle active"><span class="dot"></span>正则表达式</div>
+        <div class="toggle"><span class="dot"></span>纯文本</div>
+        <div class="toggle">区分大小写 (Aa)</div>
+        <div class="toggle">全词匹配</div>
+        <div class="divider"></div>
+        <div class="tag-btn">*.cs;*.xaml</div>
+        <div class="tag-btn">排除: bin,obj</div>
+        <div class="divider"></div>
+        <div class="toggle active">📅 日期范围</div>
+        <div class="date-input"><span class="cal">📅</span> 2026-06-01</div>
+        <span class="date-sep">~</span>
+        <div class="date-input"><span class="cal">📅</span> 2026-06-26</div>
+        <div class="spacer"></div>
+        <div style="margin-left:auto;display:flex;">
+          <button class="btn-primary">搜索</button>
+          <button class="btn-cancel">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== 3. 标签栏 ============== -->
+  <div class="tabbar">
+    <div class="tab active">搜索结果</div>
+    <div class="tab">搜索历史 <span class="badge">12</span></div>
+  </div>
+
+  <!-- ============== 4. 内容区 ============== -->
+  <div class="content">
+    <!-- 文件列表 -->
+    <div class="file-table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:220px;">文件名</th>
+            <th class="center" style="width:90px;">大小</th>
+            <th class="center" style="width:70px;">匹配数</th>
+            <th>路径</th>
+            <th style="width:130px;text-align:right;">修改时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="selected">
+            <td class="fname">UserService.cs</td>
+            <td class="center">4.2 KB</td>
+            <td class="center"><span class="match-badge">8</span></td>
+            <td class="path">Services/UserService.cs</td>
+            <td class="time">2026-06-25 14:32</td>
+          </tr>
+          <tr>
+            <td class="fname">UserController.cs</td>
+            <td class="center">2.8 KB</td>
+            <td class="center"><span class="match-badge">5</span></td>
+            <td class="path">Controllers/UserController.cs</td>
+            <td class="time">2026-06-24 09:15</td>
+          </tr>
+          <tr>
+            <td class="fname">IUserRepository.cs</td>
+            <td class="center">1.1 KB</td>
+            <td class="center"><span class="match-badge">3</span></td>
+            <td class="path">Repositories/IUserRepository.cs</td>
+            <td class="time">2026-06-23 18:40</td>
+          </tr>
+          <tr>
+            <td class="fname">UserDto.cs</td>
+            <td class="center">980 B</td>
+            <td class="center"><span class="match-badge">2</span></td>
+            <td class="path">Models/UserDto.cs</td>
+            <td class="time">2026-06-22 11:08</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 下半区 -->
+    <div class="bottom">
+      <!-- 左：匹配行 -->
+      <div class="match-panel">
+        <div class="panel-header">
+          匹配行 <span class="count">8</span><span class="sep">—</span> UserService.cs
+        </div>
+        <div class="match-list">
+          <div class="match-item"><span class="ln">  12</span>public User? <span style="color:#0e639c;font-weight:600;">GetUserById</span>(int id)</div>
+          <div class="match-item selected"><span class="ln">  15</span>    var user = await <span style="color:#0e639c;font-weight:600;">GetUserById</span>(id);</div>
+          <div class="match-item"><span class="ln">  23</span>private async Task&lt;User&gt; <span style="color:#0e639c;font-weight:600;">GetUserById</span>...</div>
+          <div class="match-item"><span class="ln">  41</span>    if (user == null) <span style="color:#0e639c;font-weight:600;">GetUserById</span>...</div>
+          <div class="match-item"><span class="ln">  58</span>    return <span style="color:#0e639c;font-weight:600;">GetUserById</span>(userId);</div>
+          <div class="match-item"><span class="ln">  72</span>    logger.Log(<span style="color:#0e639c;font-weight:600;">GetUserById</span>);</div>
+          <div class="match-item"><span class="ln">  89</span>// TODO: optimize <span style="color:#0e639c;font-weight:600;">GetUserById</span> cache</div>
+          <div class="match-item"><span class="ln"> 103</span>    cache.Set(key, <span style="color:#0e639c;font-weight:600;">GetUserById</span>(id));</div>
+        </div>
+      </div>
+
+      <!-- 右：预览 -->
+      <div class="preview-panel">
+        <div class="panel-header">
+          <span>文件预览</span><span class="sep">—</span><span style="color:var(--text-muted);">UserService.cs</span>
+          <div class="preview-wrap" style="margin-left:auto;">
+            <span class="check">☑ 自动换行</span>
+          </div>
+        </div>
+        <div class="preview">
+          <div class="trunc-note">文件过大，仅显示部分内容</div>
+          <div class="code-line"><span class="ln-num">10</span><span><span class="kw">using</span> System.Threading.Tasks;</span></div>
+          <div class="code-line"><span class="ln-num">11</span><span></span></div>
+          <div class="code-line"><span class="ln-num">12</span><span><span class="kw">public</span> <span class="typ">User</span>? <span class="hl"><span class="fn">GetUserById</span></span>(<span class="kw">int</span> id)</span></div>
+          <div class="code-line"><span class="ln-num">13</span><span>{</span></div>
+          <div class="code-line"><span class="ln-num">14</span><span>    <span class="com">// 根据用户 ID 查询用户</span></span></div>
+          <div class="code-line"><span class="ln-num">15</span><span>    <span class="kw">var</span> user = <span class="kw">await</span> <span class="hl"><span class="fn">GetUserById</span></span>(id);</span></div>
+          <div class="code-line"><span class="ln-num">16</span><span>    <span class="kw">return</span> user;</span></div>
+          <div class="code-line"><span class="ln-num">17</span><span>}</span></div>
+          <div class="code-line"><span class="ln-num">18</span><span></span></div>
+          <div class="code-line"><span class="ln-num">19</span><span><span class="kw">private</span> <span class="kw">async</span> <span class="typ">Task</span>&lt;<span class="typ">User</span>&gt; <span class="hl"><span class="fn">GetUserById</span></span>(<span class="kw">int</span> id, <span class="kw">bool</span> useCache)</span></div>
+          <div class="code-line"><span class="ln-num">20</span><span>{</span></div>
+          <div class="code-line"><span class="ln-num">21</span><span>    <span class="kw">var</span> key = <span class="str">$"user:{id}"</span>;</span></div>
+          <div class="code-line"><span class="ln-num">22</span><span>    <span class="kw">var</span> repo = _factory.Create();</span></div>
+          <div class="code-line"><span class="ln-num">23</span><span>    <span class="kw">return</span> <span class="kw">await</span> repo.<span class="fn">FindAsync</span>(id);</span></div>
+          <div class="code-line"><span class="ln-num">24</span><span>}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== 5. 状态栏 ============== -->
+  <div class="statusbar">
+    <span>就绪</span>
+    <div class="right">
+      <span class="stat">搜索: <span class="num">1,284</span> 文件</span>
+      <span class="stat">命中: <span class="num">4</span> 文件</span>
+      <span class="stat">匹配: <span class="num">18</span></span>
+      <span class="stat">耗时: <span class="num">0.34s</span></span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

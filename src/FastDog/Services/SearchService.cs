@@ -3,6 +3,8 @@ using FastDog.Models;
 
 namespace FastDog.Services;
 
+public record SearchStats(long SearchedFiles, long FoundFiles, string Elapsed);
+
 public class SearchService
 {
     private readonly RipgrepBridge _bridge = new();
@@ -11,7 +13,7 @@ public class SearchService
     public bool IsSearching => _cts is not null;
 
     public event Action<SearchResult>? ResultReceived;
-    public event Action<string>? SearchCompleted;
+    public event Action<SearchStats>? SearchCompleted;
     public event Action? SearchCancelled;
 
     public async Task SearchAsync(SearchQuery query, string basePath)
@@ -19,8 +21,13 @@ public class SearchService
         _cts = new CancellationTokenSource();
         try
         {
+            // 先统计待搜索文件总数
+            var fileListArgs = RipgrepBridge.BuildFileListArguments(query);
+            var totalFiles = await _bridge.CountFilesAsync(fileListArgs, _cts.Token);
+
             var arguments = RipgrepBridge.BuildArguments(query);
             var fileResults = new ConcurrentDictionary<string, SearchResult>();
+            var foundFiles = 0;
 
             await foreach (var rgEvent in _bridge.SearchAsync(arguments, _cts.Token))
             {
@@ -38,6 +45,7 @@ public class SearchService
                         {
                             LineNumber = rgEvent.LineNumber,
                             LineText = rgEvent.LineText,
+                            DisplayText = rgEvent.LineText.Trim(),
                             MatchStart = rgEvent.MatchStart,
                             MatchEnd = rgEvent.MatchEnd
                         });
@@ -49,12 +57,14 @@ public class SearchService
                         {
                             if (query.DateFilterEnabled && !PassDateFilter(fileResult, query))
                                 continue;
+                            foundFiles++;
                             ResultReceived?.Invoke(fileResult);
                         }
                         break;
 
                     case RgEventType.Summary:
-                        SearchCompleted?.Invoke(rgEvent.Elapsed);
+                        SearchCompleted?.Invoke(new SearchStats(
+                            totalFiles, foundFiles, rgEvent.Elapsed));
                         break;
                 }
             }

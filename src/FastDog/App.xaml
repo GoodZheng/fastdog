@@ -6,40 +6,84 @@
     <Application.Resources>
         <vm:MainViewModel x:Key="MainViewModel" />
 
-        <!-- ========== Color Theme ========== -->
-        <SolidColorBrush x:Key="AccentBrush" Color="#3498db"/>
-        <SolidColorBrush x:Key="DarkBrush" Color="#2c3e50"/>
-        <SolidColorBrush x:Key="DangerBrush" Color="#e74c3c"/>
+        <!-- ========== Color Theme（VS Code 风极简配色） ========== -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#0e639c"/>
+        <SolidColorBrush x:Key="AccentBgBrush" Color="#cce5ff"/>
+        <SolidColorBrush x:Key="DarkBrush" Color="#1e1e1e"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#c0392b"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#27ae60"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#f39c12"/>
-        <SolidColorBrush x:Key="GrayLightBrush" Color="#ecf0f1"/>
-        <SolidColorBrush x:Key="GrayMidBrush" Color="#bdc3c7"/>
-        <SolidColorBrush x:Key="GrayTextBrush" Color="#7f8c8d"/>
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="HighlightBgBrush" Color="#fef9e7"/>
-        <SolidColorBrush x:Key="HighlightFgBrush" Color="#e67e22"/>
-        <SolidColorBrush x:Key="HoverBgBrush" Color="#f8f9fa"/>
-        <SolidColorBrush x:Key="SelectedRowBrush" Color="#eaf2f8"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#b8860b"/>
+        <SolidColorBrush x:Key="GrayLightBrush" Color="#f3f3f3"/>
+        <SolidColorBrush x:Key="GrayMidBrush" Color="#e0e0e0"/>
+        <SolidColorBrush x:Key="GrayTextBrush" Color="#6a6a6a"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#9a9a9a"/>
+        <SolidColorBrush x:Key="HighlightBgBrush" Color="#fffbe6"/>
+        <SolidColorBrush x:Key="HoverBgBrush" Color="#e8e8e8"/>
 
         <!-- ========== Converters ========== -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
+        <!-- ========== CaptionButton (标题栏最小化/最大化/关闭按钮) ========== -->
+        <Style x:Key="CaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource DarkBrush}"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.FontSize="11"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBgBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== CaptionCloseButton (关闭按钮，hover 显红) ========== -->
+        <Style x:Key="CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.FontSize="11" x:Name="content"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource DangerBrush}"/>
+                                <Setter TargetName="content" Property="TextBlock.Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ========== ToggleOptionButton (搜索选项按钮) ========== -->
         <Style x:Key="ToggleOptionButton" TargetType="ToggleButton">
-            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Padding" Value="10,4"/>
             <Setter Property="Margin" Value="0,0,4,0"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="border"
-                                Background="#fff" BorderBrush="#ddd" BorderThickness="1"
+                                Background="#fff" BorderBrush="#e0e0e0" BorderThickness="1"
                                 CornerRadius="4" Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter x:Name="content"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              TextBlock.Foreground="#555"/>
+                                              TextBlock.Foreground="#6a6a6a"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -52,7 +96,7 @@
                                     <Condition Property="IsMouseOver" Value="True"/>
                                     <Condition Property="IsChecked" Value="False"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="border" Property="Background" Value="#f0f0f0"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource HoverBgBrush}"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -64,25 +108,25 @@
         <Style x:Key="TabButtonStyle" TargetType="RadioButton">
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#7f8c8d"/>
-            <Setter Property="Padding" Value="18,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="border" Padding="{TemplateBinding Padding}"
                                 BorderBrush="Transparent" BorderThickness="0,0,0,2"
-                                Margin="0,0,0,-2">
+                                Margin="0,0,0,-1">
                             <ContentPresenter x:Name="content" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                                <Setter Property="Foreground" Value="#2c3e50"/>
+                                <Setter Property="Foreground" Value="{StaticResource DarkBrush}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="#2c3e50"/>
+                                <Setter Property="Foreground" Value="{StaticResource DarkBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -92,78 +136,190 @@
 
         <!-- ========== SearchInput (搜索输入框) ========== -->
         <Style x:Key="SearchInput" TargetType="TextBox">
-            <Setter Property="BorderBrush" Value="#ddd"/>
-            <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="Padding" Value="6,5"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#e0e0e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Background" Value="White"/>
-            <Style.Triggers>
-                <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="#3498db"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                          Focusable="False" HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#0e639c"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ========== ActionButton (浏览等按钮) ========== -->
         <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Padding" Value="12,5"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Background" Value="#fff"/>
-            <Setter Property="BorderBrush" Value="#ddd"/>
+            <Setter Property="Foreground" Value="#6a6a6a"/>
+            <Setter Property="BorderBrush" Value="#e0e0e0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#e8e8e8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <!-- ========== SearchButton (搜索按钮) ========== -->
+        <!-- ========== SearchButton (搜索按钮，绿色) ========== -->
         <Style x:Key="SearchButton" TargetType="Button">
-            <Setter Property="Padding" Value="20,5"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="20,4"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Background" Value="#27ae60"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#27ae60"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#229954"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <!-- ========== CancelButton (取消按钮) ========== -->
+        <!-- ========== CancelButton (取消按钮，红色) ========== -->
         <Style x:Key="CancelButton" TargetType="Button">
-            <Setter Property="Padding" Value="14,5"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Background" Value="#e74c3c"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#e74c3c"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#cb3527"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ========== TagButton (文件过滤/排除 标签按钮) ========== -->
         <Style x:Key="TagButton" TargetType="Button">
             <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Background" Value="#fff"/>
-            <Setter Property="Foreground" Value="#555"/>
-            <Setter Property="BorderBrush" Value="#ddd"/>
+            <Setter Property="Foreground" Value="#6a6a6a"/>
+            <Setter Property="BorderBrush" Value="#e0e0e0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#e8e8e8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ========== TagInput (文件过滤/排除 内联编辑输入框) ========== -->
         <Style x:Key="TagInput" TargetType="TextBox">
             <Setter Property="Padding" Value="4,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                          Focusable="False" HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ========== PanelHeader (面板标题) ========== -->
         <Style x:Key="PanelHeader" TargetType="Border">
-            <Setter Property="Background" Value="#ecf0f1"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="BorderBrush" Value="#ddd"/>
+            <Setter Property="Background" Value="#fafafa"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="BorderBrush" Value="#e0e0e0"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
 

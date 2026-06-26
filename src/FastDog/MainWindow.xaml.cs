@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using FastDog.Models;
 using FastDog.ViewModels;
 using FastDog.Services;
@@ -15,10 +16,42 @@ public partial class MainWindow : Window
 {
     private MainViewModel? _vm;
     private TextMarkerService? _markerService;
+    private readonly LayoutConfigService _layoutService = new();
+
+    // 最大化/还原图标几何
+    private static readonly Geometry MaximizeGeom =
+        Geometry.Parse("M1,1 L10,1 L10,10 L1,10 Z");
+    private static readonly Geometry RestoreGeom =
+        Geometry.Parse("M1,3 L1,1 L8,1 L8,3 M1,3 L1,10 L8,10 L8,3 M3,1 L3,3 M8,3 L3,3 M3,3 L3,10 M10,5 L10,10 L3,10");
 
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var config = _layoutService.Load();
+        if (config is null) return;
+
+        // 检查窗口是否在可见屏幕范围内
+        if (config.Left + config.Width < 0 ||
+            config.Top + config.Height < 0 ||
+            config.Left > SystemParameters.VirtualScreenWidth ||
+            config.Top > SystemParameters.VirtualScreenHeight)
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            return;
+        }
+
+        Left = config.Left;
+        Top = config.Top;
+        Width = config.Width;
+        Height = config.Height;
+        if (config.WindowState == (int)System.Windows.WindowState.Maximized)
+            WindowState = System.Windows.WindowState.Maximized;
     }
 
     protected override void OnContentRendered(EventArgs e)
@@ -52,6 +85,13 @@ public partial class MainWindow : Window
                     editor.ScrollTo(lineNumber, 1);
             });
         };
+
+        // 恢复 Grid 分割比例（延迟执行，等待布局完成）
+        var layoutConfig = _layoutService.Load();
+        if (layoutConfig is not null)
+        {
+            Dispatcher.BeginInvoke(() => ApplySplitRatios(layoutConfig));
+        }
     }
 
     private void LoadFileContent(TextEditor editor, MainViewModel vm)
@@ -65,7 +105,7 @@ public partial class MainWindow : Window
         }
 
         editor.Document = new TextDocument(vm.FileContent);
-        ApplyMatchMarkers(editor, vm);
+        Dispatcher.BeginInvoke(() => ApplyMatchMarkers(editor, vm));
     }
 
     private void ApplyMatchMarkers(TextEditor editor, MainViewModel vm)
@@ -114,14 +154,27 @@ public partial class MainWindow : Window
 
     private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        // 只有双击数据行才打开文件，忽略表头/空白处
+        if (FindAncestor<DataGridRow>(e.OriginalSource as DependencyObject) is null) return;
+
         if (DataContext is MainViewModel vm)
             vm.OpenFileCommand.Execute(null);
     }
 
     private void MatchList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        // 只有双击匹配行才跳转，忽略空白处
+        if (FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject) is null) return;
+
         if (DataContext is MainViewModel vm)
             vm.OpenFileAtLineCommand.Execute(null);
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+    {
+        while (element is not null && element is not T)
+            element = System.Windows.Media.VisualTreeHelper.GetParent(element);
+        return element as T;
     }
 
     private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
@@ -155,6 +208,37 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm)
             vm.IsHistoryTab = true;
+    }
+
+    private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // 点击窗口空白处时，将焦点移到 Window 自身，使 TextBox 失去焦点并收回
+        if (e.OriginalSource is not System.Windows.Controls.TextBox)
+            FocusManager.SetFocusedElement(this, this);
+    }
+
+    // ==================== 自定义标题栏按钮 ====================
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+        => WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+        => Close();
+
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        // 最大化时切换图标为「还原」
+        if (MaximizeIcon is not null)
+        {
+            MaximizeIcon.Data = WindowState == WindowState.Maximized
+                ? RestoreGeom
+                : MaximizeGeom;
+        }
     }
 
     private void FileFilterButton_Click(object sender, RoutedEventArgs e)
@@ -212,10 +296,104 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Splitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        SaveLayout();
+    }
+
+    private void ApplySplitRatios(LayoutConfig config)
+    {
+        // 上下分割：Row 0 vs Row 2
+        var rowDefs = ResultsView.RowDefinitions;
+        if (rowDefs.Count >= 3)
+        {
+            rowDefs[0].Height = new GridLength(config.VerticalSplitRatio, GridUnitType.Star);
+            rowDefs[2].Height = new GridLength(1.0 - config.VerticalSplitRatio, GridUnitType.Star);
+        }
+
+        // 左右分割：Column 0 vs Column 2
+        var colDefs = BottomPanelGrid.ColumnDefinitions;
+        if (colDefs.Count >= 3)
+        {
+            colDefs[0].Width = new GridLength(config.HorizontalSplitRatio, GridUnitType.Star);
+            colDefs[2].Width = new GridLength(1.0 - config.HorizontalSplitRatio, GridUnitType.Star);
+        }
+    }
+
+    private LayoutConfig CaptureCurrentLayout()
+    {
+        var state = WindowState;
+        // 最大化/最小化时使用 RestoreBounds 获取 Normal 状态下的位置
+        double left, top, width, height;
+        if (state == System.Windows.WindowState.Normal)
+        {
+            left = Left;
+            top = Top;
+            width = Width;
+            height = Height;
+        }
+        else
+        {
+            left = RestoreBounds.Left;
+            top = RestoreBounds.Top;
+            width = RestoreBounds.Width;
+            height = RestoreBounds.Height;
+        }
+
+        var rowDefs = ResultsView.RowDefinitions;
+        var colDefs = BottomPanelGrid.ColumnDefinitions;
+
+        double verticalRatio = 0.4;
+        double horizontalRatio = 0.35;
+
+        if (rowDefs.Count >= 3 &&
+            rowDefs[0].Height.GridUnitType == GridUnitType.Star &&
+            rowDefs[2].Height.GridUnitType == GridUnitType.Star)
+        {
+            var total = rowDefs[0].Height.Value + rowDefs[2].Height.Value;
+            if (total > 0)
+                verticalRatio = rowDefs[0].Height.Value / total;
+        }
+
+        if (colDefs.Count >= 3 &&
+            colDefs[0].Width.GridUnitType == GridUnitType.Star &&
+            colDefs[2].Width.GridUnitType == GridUnitType.Star)
+        {
+            var total = colDefs[0].Width.Value + colDefs[2].Width.Value;
+            if (total > 0)
+                horizontalRatio = colDefs[0].Width.Value / total;
+        }
+
+        return new LayoutConfig
+        {
+            Left = left,
+            Top = top,
+            Width = width,
+            Height = height,
+            WindowState = (int)state,
+            VerticalSplitRatio = verticalRatio,
+            HorizontalSplitRatio = horizontalRatio
+        };
+    }
+
+    private void SaveLayout()
+    {
+        try
+        {
+            var config = CaptureCurrentLayout();
+            _layoutService.Save(config);
+        }
+        catch
+        {
+            // 静默失败，布局保存不应影响正常使用
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         if (DataContext is MainViewModel vm)
             vm.SaveSession();
+        SaveLayout();
         base.OnClosed(e);
     }
 }

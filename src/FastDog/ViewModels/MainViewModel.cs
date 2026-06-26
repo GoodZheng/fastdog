@@ -49,6 +49,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isFileError = false;
     [ObservableProperty] private string _fileErrorMessage = string.Empty;
     [ObservableProperty] private bool _isFileTruncated = false;
+    [ObservableProperty] private bool _previewWordWrap = false;
 
     // --- 搜索历史 ---
     public ObservableCollection<SearchHistoryEntry> HistoryEntries { get; } = [];
@@ -96,6 +97,15 @@ public partial class MainViewModel : ObservableObject
         // 填充匹配行
         foreach (var match in value.Matches)
             MatchLines.Add(match);
+
+        // 默认选中第一个匹配行。必须在 Dispatcher 上延迟执行：此处正处于
+        // MatchLines.Clear()+Add 的同一同步流程中，同步赋值会被 WPF 的
+        // Selector 选择状态绑定短路，导致 ListBox 视觉上不生效。
+        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (MatchLines.Count > 0)
+                SelectedMatchLine = MatchLines[0];
+        }), System.Windows.Threading.DispatcherPriority.Background);
 
         // 检测二进制文件
         if (_previewService.IsBinaryFile(value.FilePath))
@@ -157,6 +167,22 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ExcludeDirsDisplay));
     }
 
+    // 日期范围交叉校验：始终保证 DateFrom <= DateTo，避免出现倒置区间。
+    // 任一边改变后若越过另一边，就把另一边拉齐到当前值。仅在确实越界时才
+    // 写回，因此由它触发的对侧 OnXxxChanged 内的判断不会再次成立，不会
+    // 形成无限递归。
+    partial void OnDateFromChanged(DateTime? value)
+    {
+        if (value is not null && DateTo is not null && value > DateTo)
+            DateTo = value;
+    }
+
+    partial void OnDateToChanged(DateTime? value)
+    {
+        if (value is not null && DateFrom is not null && value < DateFrom)
+            DateFrom = value;
+    }
+
     private void ClearSessionRestore()
     {
         if (IsSessionRestored)
@@ -171,6 +197,10 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task SearchAsync()
     {
+        // 去除搜索词首尾空白，避免误传给 ripgrep 影响匹配结果
+        // （复制粘贴常带入前后空格）
+        SearchText = SearchText.Trim();
+
         if (string.IsNullOrWhiteSpace(SearchPath) || string.IsNullOrWhiteSpace(SearchText))
             return;
 
@@ -204,7 +234,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            await _searchService.SearchAsync(query, SearchPath);
+            await Task.Run(async () => await _searchService.SearchAsync(query, SearchPath));
         }
         catch (Exception ex)
         {
@@ -281,6 +311,19 @@ public partial class MainViewModel : ObservableObject
         if (SelectedResult is null) return;
         System.Windows.Clipboard.SetText(SelectedResult.FileName);
         StatusText = "已复制文件名";
+    }
+
+    [RelayCommand]
+    private void OpenInExplorer()
+    {
+        if (SelectedResult is null) return;
+        try
+        {
+            var dir = System.IO.Path.GetDirectoryName(SelectedResult.FilePath);
+            if (dir is not null)
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+        }
+        catch { }
     }
 
     // --- 历史操作 ---

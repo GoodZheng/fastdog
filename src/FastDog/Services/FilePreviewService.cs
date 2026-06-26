@@ -64,7 +64,26 @@ public class FilePreviewService
         for (int i = 0; i < lineIndex; i++)
             offset += lineLengths[i];
 
-        return (offset + match.MatchStart, offset + match.MatchEnd);
+        // ripgrep 的 submatches.start/end 是 UTF-8 字节偏移量，
+        // 但 AvalonEdit 使用字符偏移量，必须转换。
+        int charStart = ByteToCharOffset(match.LineText, match.MatchStart);
+        int charEnd = ByteToCharOffset(match.LineText, match.MatchEnd);
+
+        return (offset + charStart, offset + charEnd);
+    }
+
+    /// <summary>
+    /// 将 UTF-8 字节偏移量转换为 .NET 字符串的字符偏移量。
+    /// 对于 ASCII 文本两者相同；对于中文等多字节字符，字节偏移 > 字符偏移。
+    /// </summary>
+    public static int ByteToCharOffset(string text, int byteOffset)
+    {
+        if (byteOffset <= 0) return 0;
+        if (string.IsNullOrEmpty(text)) return byteOffset; // 回退：无行文本时假定 ASCII
+        var utf8 = System.Text.Encoding.UTF8;
+        var bytes = utf8.GetBytes(text);
+        if (byteOffset >= bytes.Length) return text.Length;
+        return utf8.GetCharCount(bytes, 0, byteOffset);
     }
 
     public int[] ComputeLineLengths(string content)

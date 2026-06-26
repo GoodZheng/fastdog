@@ -52,3 +52,12 @@ package-lock.json
 *.log
 temp/
 tmp/
+
+# Build outputs (dotnet publish / Inno Setup / portable)
+publish/
+installer/
+release/
+
+# Local tool / agent configs
+.claude/
+.zcode/

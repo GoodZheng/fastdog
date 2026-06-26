@@ -1,4 +1,25 @@
 {
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "PowerShell(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(tasklist)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell(dotnet test *)",
+      "PowerShell(git add *)",
+      "Bash(dotnet build *)",
+      "Bash(Select-String -Pattern \"\\(error|warning|BUILD\\)\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(Select-Object -First 5)",
+      "Bash(dotnet publish *)",
+      "PowerShell(Get-Item publish\\\\FastDog.exe | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\" installer.iss)"
+    ]
+  },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true
   }
