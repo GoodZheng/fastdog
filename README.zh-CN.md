@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/fastdog-logo.png" alt="FastDog" width="120">
+  <img src="src/FastDog/Assets/fastdog.png" alt="FastDog" width="120">
 </p>
 
 <h1 align="center">🐕 FastDog</h1>
@@ -36,7 +36,7 @@
 ### 📸 界面截图
 
 <p align="center">
-  <img src="assets/screenshot-main.png" alt="FastDog 主界面" width="80%">
+  <img src="src/FastDog/Assets/P1.png" alt="FastDog 主界面" width="80%">
 </p>
 
 ### 🚀 快速开始
