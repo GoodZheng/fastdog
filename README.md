@@ -6,11 +6,9 @@
   <img src="https://img.shields.io/github/downloads/GoodZheng/fastdog/total?style=flat-square" alt="Downloads">
 </p>
 
-<p align="center">
-  <img src="src/FastDog/Assets/fastdog.png" alt="FastDog" width="120">
-</p>
-
-<h1 align="center">🐕 FastDog</h1>
+<h1 align="center">
+  <img src="src/FastDog/Assets/fastdog.png" alt="FastDog" width="36" valign="middle"> FastDog
+</h1>
 
 <p align="center">
   <strong>A blazing-fast, minimalist text search tool for Windows</strong><br>
