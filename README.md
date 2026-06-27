@@ -97,6 +97,7 @@ Future enhancements planned for upcoming releases:
 
 - **🌐 Installer Localization** — Multi-language installer wizard (e.g., Simplified Chinese / English), letting users select UI language during setup
 - **📌 Minimize to System Tray** — Keep FastDog running in the background when the window is closed; access it via the system tray icon for quick, on-demand searches
+- **🐛 Search History Rendering Issue** — Fix an issue where the search history tab fails to display saved entries; investigate the history persistence and data-binding pipeline
 
 ### 🏗️ Tech Stack
 
