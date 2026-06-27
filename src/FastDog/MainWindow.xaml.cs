@@ -18,6 +18,13 @@ public partial class MainWindow : Window
     private TextMarkerService? _markerService;
     private readonly LayoutConfigService _layoutService = new();
 
+    /// <summary>
+    /// 当前应用版本号（取自程序集 Version，与 csproj 的 &lt;Version&gt; 同源）。
+    /// 标题栏绑定此属性，避免发版时人工改 XAML 硬编码字符串而遗漏。
+    /// </summary>
+    public string AppVersion =>
+        System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
+
     // 最大化/还原图标几何
     private static readonly Geometry MaximizeGeom =
         Geometry.Parse("M1,1 L10,1 L10,10 L1,10 Z");

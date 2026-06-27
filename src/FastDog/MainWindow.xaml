@@ -40,8 +40,11 @@
                     <TextBlock VerticalAlignment="Center">
                         <Run Text="Fast" FontWeight="ExtraBold" FontSize="13" Foreground="#e74c3c"/>
                         <Run Text="Dog" FontWeight="ExtraBold" FontSize="13" Foreground="#1e1e1e"/>
-                        <Run Text="v1.1.1 — 基于 ripgrep 的文本搜索" FontSize="12" Foreground="#9a9a9a"/>
+                        <Run Text=" — 基于 ripgrep 的文本搜索" FontSize="12" Foreground="#9a9a9a"/>
                     </TextBlock>
+                    <TextBlock VerticalAlignment="Center" Margin="6,0,0,0"
+                               FontSize="12" Foreground="#9a9a9a"
+                               Text="{Binding AppVersion, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='v{0}'}"/>
                 </StackPanel>
 
                 <!-- 右侧：窗口控制按钮 -->
