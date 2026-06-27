@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.1-blue?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square" alt=".NET">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
