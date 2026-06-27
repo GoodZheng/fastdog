@@ -7,7 +7,7 @@
 </p>
 
 <h1 align="center">
-  <img src="src/FastDog/Assets/fastdog.png" alt="FastDog" width="36" valign="middle"> FastDog
+  <img src="src/FastDog/Assets/newLogo1.2.png" alt="FastDog" width="36" valign="middle"> FastDog
 </h1>
 
 <p align="center">

@@ -5,7 +5,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:models="clr-namespace:FastDog.Models"
         Title="FastDog — 基于 ripgrep 的文本搜索" Height="800" Width="1200"
-        Icon="Assets/fastdog.ico"
+        Icon="Assets/newLogo1.2.ico"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         MouseDown="Window_MouseDown"
@@ -29,25 +29,18 @@
     <DockPanel>
 
         <!-- ==================== 自定义标题栏 ==================== -->
-        <Border DockPanel.Dock="Top" Height="36" Background="White"
-                BorderBrush="#e0e0e0" BorderThickness="0,0,0,1">
+        <Border DockPanel.Dock="Top" Height="36" Background="#faf8f3"
+                BorderBrush="#ebe6da" BorderThickness="0,0,0,1">
             <Grid>
                 <!-- 左侧：图标 + 彩色 Logo + 版本 -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                    <Border Width="16" Height="16" CornerRadius="4" Margin="0,0,8,0">
-                        <Border.Background>
-                            <LinearGradientBrush EndPoint="1,1">
-                                <GradientStop Color="#0e639c" Offset="0"/>
-                                <GradientStop Color="#2d7fb8" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock Text="F" Foreground="White" FontWeight="Bold" FontSize="10"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Image Source="Assets/newLogo1.2.ico" Width="22" Height="22"
+                           Margin="0,0,8,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock VerticalAlignment="Center">
                         <Run Text="Fast" FontWeight="ExtraBold" FontSize="13" Foreground="#e74c3c"/>
                         <Run Text="Dog" FontWeight="ExtraBold" FontSize="13" Foreground="#1e1e1e"/>
-                        <Run Text="v1.1.0 — 基于 ripgrep 的文本搜索" FontSize="12" Foreground="#9a9a9a"/>
+                        <Run Text="v1.1.1 — 基于 ripgrep 的文本搜索" FontSize="12" Foreground="#9a9a9a"/>
                     </TextBlock>
                 </StackPanel>
 
@@ -255,8 +248,8 @@
         </Border>
 
         <!-- ==================== Status Bar ==================== -->
-        <Border DockPanel.Dock="Bottom" Background="#e8e8e8"
-                BorderBrush="#e0e0e0" BorderThickness="0,1,0,0" Padding="12,5">
+        <Border DockPanel.Dock="Bottom" Background="#faf8f3"
+                BorderBrush="#ebe6da" BorderThickness="0,1,0,0" Padding="12,5">
             <Grid>
                 <TextBlock Foreground="#555" FontSize="12" VerticalAlignment="Center">
                     <Run Text="{Binding StatusText, Mode=OneWay}"/>

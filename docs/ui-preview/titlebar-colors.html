@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>FastDog 标题栏配色方案对比</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #2d2d2d;
+    padding: 24px;
+    color: #1e1e1e;
+  }
+  h1 { color: #ddd; font-size: 18px; margin-bottom: 4px; font-weight: 600; }
+  .hint { color: #999; font-size: 13px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .card-label { color: #ddd; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .card-desc { color: #888; font-size: 12px; margin-bottom: 10px; line-height: 1.6; }
+
+  .window {
+    background: #f3f3f3;
+    border: 1px solid #cccccc;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .titlebar {
+    height: 36px;
+    display: flex; align-items: stretch;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .titlebar-left { display: flex; align-items: center; padding: 0 12px; gap: 8px; flex: 1; }
+  .titlebar-icon {
+    width: 16px; height: 16px; border-radius: 4px;
+    background: linear-gradient(135deg, #0e639c, #2d7fb8);
+    color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .titlebar-title { font-size: 12px; font-weight: 500; }
+  .titlebar-title .fast { color: #e74c3c; font-weight: 800; }
+  .titlebar-title .dog { color: #1e1e1e; font-weight: 800; }
+  .titlebar-title .ver { color: #9a9a9a; margin-left: 6px; }
+  .titlebar-buttons { display: flex; align-items: stretch; }
+  .caption-btn {
+    width: 46px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; transition: background .12s;
+  }
+  .caption-btn svg { width: 11px; height: 11px; }
+  .body { background: #fff; padding: 14px 16px; height: 110px; }
+  .body .row { display: flex; align-items: center; margin-bottom: 6px; }
+  .body .label { width: 55px; font-size: 12px; color: #9a9a9a; }
+  .body .input {
+    flex: 1; height: 28px; border: 1px solid #e0e0e0; border-radius: 4px;
+    padding: 0 8px; font-size: 13px; color: #1e1e1e; display: flex; align-items: center;
+  }
+
+  .a .titlebar { background: #f0f0f0; }
+  .a .titlebar-title, .a .caption-btn { color: #1e1e1e; }
+  .a .caption-btn:hover { background: #e0e0e0; }
+
+  .b .titlebar { background: #f5f8fb; }
+  .b .titlebar-title, .b .caption-btn { color: #1e1e1e; }
+  .b .caption-btn:hover { background: #e3edf5; }
+
+  .c .titlebar { background: #faf8f3; border-bottom-color: #ebe6da; }
+  .c .titlebar-title, .c .caption-btn { color: #1e1e1e; }
+  .c .caption-btn:hover { background: #f0ece2; }
+
+  .d .titlebar { background: #fff; border-top: 2px solid #0e639c; border-bottom: 1px solid #e0e0e0; }
+  .d .titlebar-title, .d .caption-btn { color: #1e1e1e; }
+  .d .caption-btn:hover { background: #f0f0f0; }
+</style>
+</head>
+<body>
+  <h1>FastDog 标题栏配色方案对比</h1>
+  <div class="hint">内容区都是纯白 #fff，仅标题栏做区别。把鼠标移到右上角按钮可看 hover 效果。</div>
+
+  <div class="grid">
+
+    <div>
+      <div class="card-label">方案 A · 浅灰标题栏 #f0f0f0</div>
+      <div class="card-desc">最经典：标题栏比内容区暗一档，层次清晰，VS Code 本身就是这个路子。<strong>推荐</strong>。</div>
+      <div class="window a">
+        <div class="titlebar">
+          <div class="titlebar-left">
+            <div class="titlebar-icon">F</div>
+            <div class="titlebar-title"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.1.0 — 基于 ripgrep 的文本搜索</span></div>
+          </div>
+          <div class="titlebar-buttons">
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1" fill="currentColor"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><path d="M1,1 L11,11 M11,1 L1,11" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="row"><div class="label">搜索路径</div><div class="input">E:\demo\projects\myapp</div></div>
+          <div class="row"><div class="label">搜索内容</div><div class="input">GetUserById</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">方案 B · 浅蓝灰 #f5f8fb</div>
+      <div class="card-desc">带一点强调色蓝调，呼应品牌色，比纯灰更有"设计感"，但更挑光线。</div>
+      <div class="window b">
+        <div class="titlebar">
+          <div class="titlebar-left">
+            <div class="titlebar-icon">F</div>
+            <div class="titlebar-title"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.1.0 — 基于 ripgrep 的文本搜索</span></div>
+          </div>
+          <div class="titlebar-buttons">
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1" fill="currentColor"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><path d="M1,1 L11,11 M11,1 L1,11" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="row"><div class="label">搜索路径</div><div class="input">E:\demo\projects\myapp</div></div>
+          <div class="row"><div class="label">搜索内容</div><div class="input">GetUserById</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">方案 C · 浅米色 #faf8f3</div>
+      <div class="card-desc">暖色调，柔和有质感，偏"文档/编辑器"气质。但和蓝色强调色搭可能略显违和。</div>
+      <div class="window c">
+        <div class="titlebar">
+          <div class="titlebar-left">
+            <div class="titlebar-icon">F</div>
+            <div class="titlebar-title"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.1.0 — 基于 ripgrep 的文本搜索</span></div>
+          </div>
+          <div class="titlebar-buttons">
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1" fill="currentColor"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><path d="M1,1 L11,11 M11,1 L1,11" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="row"><div class="label">搜索路径</div><div class="input">E:\demo\projects\myapp</div></div>
+          <div class="row"><div class="label">搜索内容</div><div class="input">GetUserById</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">方案 D · 顶部蓝细线 + 纯白 #fff</div>
+      <div class="card-desc">标题栏仍纯白，但顶部加一条 2px 强调色蓝线做区隔。最克制，但区分度较弱。</div>
+      <div class="window d">
+        <div class="titlebar">
+          <div class="titlebar-left">
+            <div class="titlebar-icon">F</div>
+            <div class="titlebar-title"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.1.0 — 基于 ripgrep 的文本搜索</span></div>
+          </div>
+          <div class="titlebar-buttons">
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1" fill="currentColor"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+            <div class="caption-btn"><svg viewBox="0 0 12 12"><path d="M1,1 L11,11 M11,1 L1,11" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="row"><div class="label">搜索路径</div><div class="input">E:\demo\projects\myapp</div></div>
+          <div class="row"><div class="label">搜索内容</div><div class="input">GetUserById</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
