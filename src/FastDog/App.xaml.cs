@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using FastDog.Services;
 using Forms = System.Windows.Forms;
@@ -10,6 +11,16 @@ namespace FastDog;
 
 public partial class App : System.Windows.Application
 {
+    // 单实例：全局互斥量（跨会话，所有用户共享同一 Mutex）
+    private const string MutexName = "Global\\FastDog_SingleInstance_Mutex";
+    // 单实例：用于新进程通知已有实例"把窗口激活"的命名事件
+    private const string EventName = "Global\\FastDog_ShowWindow_Event";
+
+    private Mutex? _mutex;
+    private EventWaitHandle? _showWindowEvent;
+    // 标记当前进程是否为首次启动的实例（拥有 Mutex 的即为首次）
+    private bool _isFirstInstance;
+
     private MainWindow? _mainWindow;
     private Forms.NotifyIcon? _notifyIcon;
     private readonly UpdateService _updateService = new();
@@ -41,6 +52,43 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // —— 单实例检测 ——
+        // 尝试获取全局 Mutex；createdNew=true 表示当前进程是首次启动的实例
+        _mutex = new Mutex(true, MutexName, out _isFirstInstance);
+
+        if (!_isFirstInstance)
+        {
+            // 已有实例正在运行：通过命名事件通知它激活窗口
+            try
+            {
+                using var ev = EventWaitHandle.OpenExisting(EventName);
+                ev.Set();
+            }
+            catch (WaitHandleCannotBeOpenedException)
+            {
+                // 已有实例刚启动还未创建事件，忽略——它马上就会创建
+            }
+            // 新进程直接退出，让用户继续使用已有窗口
+            Shutdown();
+            return;
+        }
+
+        // 首次实例：创建命名事件，供后续重复启动的进程触发
+        _showWindowEvent = new EventWaitHandle(false, EventResetMode.AutoReset, EventName);
+        // 后台线程持续监听该事件，被触发后把主窗口激活到前台
+        var waitThread = new Thread(() =>
+        {
+            while (_showWindowEvent?.WaitOne(Timeout.Infinite) == true)
+            {
+                Dispatcher.BeginInvoke(new Action(ShowMainWindow));
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "SingleInstance-Listener"
+        };
+        waitThread.Start();
 
         // 主窗口由代码手动创建（已移除 StartupUri），ShutdownMode=OnExplicitShutdown
         // 保证主窗口隐藏到托盘时进程不会退出。
@@ -226,6 +274,17 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
+        _showWindowEvent?.Dispose();
+        _showWindowEvent = null;
+
+        // 仅首次实例释放 Mutex（非首次实例在 OnStartup 已退出，此处 _isFirstInstance=false）
+        if (_isFirstInstance)
+        {
+            _mutex?.ReleaseMutex();
+            _mutex?.Dispose();
+            _mutex = null;
+        }
+
         _updateService.Dispose();
         if (_notifyIcon is not null)
         {

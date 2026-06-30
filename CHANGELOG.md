@@ -19,6 +19,18 @@
 
 ---
 
+## [1.2.1]
+
+### 新增
+
+- **单实例限制**：程序仅允许运行一个实例。重复启动时，新进程通过命名
+  `EventWaitHandle` 通知已有实例激活主窗口（从托盘恢复到前台），然后自行退出。
+  实现方式：`Global\FastDog_SingleInstance_Mutex`（命名互斥量检测首次实例）+
+  `Global\FastDog_ShowWindow_Event`（命名事件通知激活窗口），后台监听线程在
+  `App.xaml.cs`。
+
+---
+
 ## [1.2.0] - 2026-06-29
 
 ### 新增
