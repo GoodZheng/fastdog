@@ -31,10 +31,18 @@
     background: #2d2d2d;          /* 桌面背景，衬托窗口 */
     color: var(--text-main);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 32px;
     padding: 28px;
   }
+  /* 主窗口上方的小标注，说明这是当前设计基准 */
+  .baseline-label {
+    width: 1200px; color: #9a9a9a; font-size: 13px;
+    text-align: left; margin: -12px 0 -4px;
+  }
+  .baseline-label .dot { color: var(--accent); font-weight: 700; }
 
   /* ============== 应用窗口外壳 ============== */
   .window {
@@ -395,6 +403,176 @@
   .statusbar .stat .num { color: var(--accent); font-weight: 700; }
   .statusbar .right { margin-left: auto; display: flex; }
 
+  /* ============================================================
+     6. 入口位置方案对比区（局部预览，用于选定「关于/检查更新」放哪）
+     ============================================================ */
+  .compare-section {
+    width: 1200px;
+    color: #ddd;
+  }
+  .compare-title {
+    color: #fff; font-size: 18px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .compare-title .accent { color: var(--accent); }
+  .compare-sub {
+    color: #9a9a9a; font-size: 13px; margin-bottom: 18px;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .compare-card {
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .compare-card h3 {
+    color: #fff; font-size: 15px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .compare-card h3 .tag {
+    font-size: 10px; font-weight: 700;
+    background: var(--accent); color: #fff;
+    padding: 1px 7px; border-radius: 10px;
+  }
+  .compare-card .desc {
+    color: #bcbcbc; font-size: 12px; line-height: 1.5; margin-bottom: 12px;
+  }
+
+  /* —— 局部窗口缩略外壳（复用 .window 配色，但缩小并裁切） —— */
+  .mini-window {
+    background: var(--bg);
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .mini-titlebar {
+    height: 30px; background: #faf8f3;
+    border-bottom: 1px solid #ebe6da;
+    display: flex; align-items: center;
+    padding: 0 10px;
+  }
+  .mini-brand {
+    font-size: 11px; font-weight: 800;
+  }
+  .mini-brand .fast { color: #e74c3c; }
+  .mini-brand .dog { color: #1e1e1e; }
+  .mini-brand .ver { color: #9a9a9a; font-weight: 400; margin-left: 4px; font-size: 10px; }
+  .mini-spacer { flex: 1; }
+
+  /* 缩小版窗口按钮 + 齿轮按钮 */
+  .mini-caption {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    color: #1e1e1e; cursor: pointer;
+  }
+  .mini-caption svg { width: 9px; height: 9px; }
+  .mini-caption.close:hover { background: var(--danger); color: #fff; }
+  .mini-caption:hover { background: var(--hover); }
+
+  /* ★ 标红的新增入口按钮（齿轮） */
+  .gear-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    color: #1e1e1e; cursor: pointer; position: relative;
+    background: #fffbe6;   /* 黄底高亮，示意"新增" */
+    border-left: 1px solid var(--border);
+  }
+  .gear-btn:hover { background: #fff3bf; }
+  .gear-btn svg { width: 13px; height: 13px; }
+  .gear-btn .new-tag {
+    position: absolute; top: -6px; right: -6px;
+    background: #e74c3c; color: #fff;
+    font-size: 8px; font-weight: 700;
+    padding: 0 4px; border-radius: 7px; line-height: 12px;
+  }
+
+  /* 下拉菜单（标题栏齿轮弹出） */
+  .dropdown {
+    position: absolute;
+    right: 92px;   /* 紧邻窗口按钮组左侧 */
+    top: 34px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    padding: 4px; width: 150px;
+    z-index: 5;
+  }
+  .dropdown .item {
+    padding: 8px 12px; font-size: 12px; color: #1e1e1e;
+    border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dropdown .item:hover { background: var(--hover); }
+  .dropdown .item svg { width: 13px; height: 13px; color: var(--text-body); }
+
+  /* 状态栏右侧文字按钮组（方案D） */
+  .mini-statusbar {
+    height: 26px; background: #faf8f3;
+    border-top: 1px solid #ebe6da;
+    display: flex; align-items: center;
+    padding: 0 10px; font-size: 11px; color: #555;
+  }
+  .mini-statusbar .stat { margin-left: 12px; }
+  .mini-statusbar .num { color: var(--accent); font-weight: 700; }
+  .mini-statusbar .link {
+    color: var(--accent); cursor: pointer; margin-left: 12px;
+    background: #fffbe6;   /* 黄底高亮，示意"新增" */
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* 托盘菜单缩略 */
+  .tray-menu {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    padding: 4px; width: 170px;
+    margin: 0 auto;
+  }
+  .tray-menu .t-item {
+    padding: 8px 12px; font-size: 12px; color: #1e1e1e;
+    border-radius: 5px; cursor: pointer;
+  }
+  .tray-menu .t-item:hover { background: var(--hover); }
+  .tray-menu .t-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+  /* ★ 新增项黄底高亮 */
+  .tray-menu .t-new {
+    background: #fffbe6; position: relative;
+  }
+  .tray-menu .t-new::after {
+    content: 'NEW';
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; font-weight: 700; color: #e74c3c;
+  }
+
+  /* 缩略搜索条件行（让缩略窗口不那么空） */
+  .mini-search {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 10px; font-size: 11px; color: #9a9a9a;
+  }
+  .mini-search .row { display: flex; align-items: center; margin-bottom: 6px; }
+  .mini-search .row:last-child { margin-bottom: 0; }
+  .mini-search .lbl { width: 46px; }
+  .mini-search .box {
+    flex: 1; height: 22px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+  .mini-search .toggles { display: flex; gap: 4px; }
+  .mini-search .tg {
+    height: 20px; padding: 0 8px; font-size: 10px;
+    border: 1px solid var(--border); border-radius: 3px;
+    display: inline-flex; align-items: center; color: #6a6a6a;
+  }
+
+  /* 让缩略窗口里标题栏能容纳绝对定位的下拉 */
+  .mini-window.has-dropdown { position: relative; }
+
   /* 简单语法高亮配色（预览用，接近真实编辑器） */
   .kw { color: #569cd6; }      /* 关键字 */
   .str { color: #ce9178; }     /* 字符串 */
@@ -404,6 +582,7 @@
 </style>
 </head>
 <body>
+<div class="baseline-label"><span class="dot">●</span> 当前设计基准（完整窗口）— 用于对比下方 4 种「关于 / 检查更新」入口方案</div>
 <div class="window">
 
   <!-- ============== 1. 标题栏 ============== -->
@@ -579,5 +758,162 @@
   </div>
 
 </div>
+
+<!-- ================================================================
+     入口位置方案对比区：把「关于」与「检查更新」放哪？
+     黄底 / NEW 标记 = 新增入口位置
+     ================================================================ -->
+<div class="compare-section">
+  <div class="compare-title">入口位置方案对比 <span class="accent">·</span> 「关于」/「检查更新」放在哪里？</div>
+  <div class="compare-sub">
+    四种方案均为<strong style="color:#ddd;">局部预览</strong>，黄底标记 = 新增入口位置。下方为各自取舍说明，供选定。
+  </div>
+  <div class="compare-grid">
+
+    <!-- ===== 方案 A：标题栏齿轮菜单 ===== -->
+    <div class="compare-card">
+      <h3>方案 A <span class="tag">推荐</span> 标题栏齿轮菜单</h3>
+      <div class="desc">窗口按钮左侧加齿轮图标，点击下拉「检查更新 / 关于」。最符合现代桌面应用习惯（VS Code / Sublime 风），最显眼，不挤占内容区。改动集中在标题栏。</div>
+      <div class="mini-window has-dropdown">
+        <div class="mini-titlebar">
+          <div class="mini-brand"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.2.0</span></div>
+          <div class="mini-spacer"></div>
+          <!-- ★ 齿轮按钮（新增） -->
+          <div class="gear-btn" title="菜单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="new-tag">NEW</span>
+          </div>
+          <div class="mini-caption" title="最小化"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1"/></svg></div>
+          <div class="mini-caption" title="最大化"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+          <div class="mini-caption close" title="关闭"><svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          <!-- 下拉菜单（展开状态，示意） -->
+          <div class="dropdown">
+            <div class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/></svg>
+              检查更新
+            </div>
+            <div class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              关于 FastDog
+            </div>
+          </div>
+        </div>
+        <div class="mini-search">
+          <div class="row"><span class="lbl">搜索路径</span><div class="box"></div></div>
+          <div class="row"><span class="lbl">搜索内容</span><div class="box"></div></div>
+          <div class="row"><div class="toggles"><span class="tg">正则</span><span class="tg">纯文本</span><span class="tg">区分大小写</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 方案 B：标题栏 + 托盘双入口 ===== -->
+    <div class="compare-card">
+      <h3>方案 B 标题栏 + 托盘双入口</h3>
+      <div class="desc">在方案 A 基础上，同步在<strong style="color:#ddd;">托盘右键菜单</strong>加「检查更新 / 关于」。常驻托盘（已实现的最小化到托盘）时也能访问，体验一致。改动稍多，覆盖主窗口与托盘两个组件。</div>
+      <div class="mini-window has-dropdown">
+        <div class="mini-titlebar">
+          <div class="mini-brand"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.2.0</span></div>
+          <div class="mini-spacer"></div>
+          <div class="gear-btn" title="菜单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="new-tag">NEW</span>
+          </div>
+          <div class="mini-caption" title="最小化"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1"/></svg></div>
+          <div class="mini-caption" title="最大化"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+          <div class="mini-caption close" title="关闭"><svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+          <div class="dropdown">
+            <div class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/></svg>
+              检查更新
+            </div>
+            <div class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              关于 FastDog
+            </div>
+          </div>
+        </div>
+        <div class="mini-search">
+          <div class="row"><span class="lbl">搜索路径</span><div class="box"></div></div>
+          <div class="row"><span class="lbl">搜索内容</span><div class="box"></div></div>
+          <div class="row"><span class="lbl" style="font-size:10px;color:#0e639c;">↕</span><span style="font-size:10px;color:#9a9a9a;">同步加入托盘右键菜单（见右下示意）</span></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:14px;">
+        <div class="tray-menu">
+          <div class="t-item">显示 FastDog</div>
+          <div class="t-sep"></div>
+          <div class="t-item t-new">检查更新</div>
+          <div class="t-item t-new">关于…</div>
+          <div class="t-sep"></div>
+          <div class="t-item">退出</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 方案 C：仅托盘菜单 ===== -->
+    <div class="compare-card">
+      <h3>方案 C 仅托盘菜单</h3>
+      <div class="desc">只在托盘右键菜单加「检查更新 / 关于」。改动最小，但主窗口可见时用户<strong style="color:#e74c3c;">不易发现入口</strong>（需先最小化到托盘）。不符合"关于"这种常用入口的可达性。</div>
+      <div class="mini-window">
+        <div class="mini-titlebar">
+          <div class="mini-brand"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.2.0</span></div>
+          <div class="mini-spacer"></div>
+          <div class="mini-caption" title="最小化"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1"/></svg></div>
+          <div class="mini-caption" title="最大化"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+          <div class="mini-caption close" title="关闭"><svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+        </div>
+        <div class="mini-search">
+          <div class="row"><span class="lbl">搜索路径</span><div class="box"></div></div>
+          <div class="row"><span class="lbl">搜索内容</span><div class="box"></div></div>
+          <div class="row"><span class="lbl" style="font-size:10px;color:#9a9a9a;">标题栏</span><span style="font-size:10px;color:#9a9a9a;">无入口（保持不变）</span></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:14px;">
+        <div class="tray-menu">
+          <div class="t-item">显示 FastDog</div>
+          <div class="t-sep"></div>
+          <div class="t-item t-new">检查更新</div>
+          <div class="t-item t-new">关于…</div>
+          <div class="t-sep"></div>
+          <div class="t-item">退出</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 方案 D：状态栏右侧按钮 ===== -->
+    <div class="compare-card">
+      <h3>方案 D 状态栏右侧按钮</h3>
+      <div class="desc">在底部状态栏最右加「关于 / 检查更新」文字链接。改动小，但与文件数/匹配数挤在一起，<strong style="color:#e74c3c;">信息密度高</strong>，且状态栏在窗口缩小后易被忽略。可达性中等。</div>
+      <div class="mini-window">
+        <div class="mini-titlebar">
+          <div class="mini-brand"><span class="fast">Fast</span><span class="dog">Dog</span><span class="ver">v1.2.0</span></div>
+          <div class="mini-spacer"></div>
+          <div class="mini-caption" title="最小化"><svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1"/></svg></div>
+          <div class="mini-caption" title="最大化"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>
+          <div class="mini-caption close" title="关闭"><svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></div>
+        </div>
+        <div class="mini-search">
+          <div class="row"><span class="lbl">搜索路径</span><div class="box"></div></div>
+          <div class="row"><span class="lbl">搜索内容</span><div class="box"></div></div>
+          <div class="row"><div class="toggles"><span class="tg">正则</span><span class="tg">纯文本</span></div></div>
+        </div>
+        <div class="mini-search" style="padding:0;">
+          <div style="height:60px;background:#fafafa;display:flex;align-items:center;justify-content:center;font-size:10px;color:#bcbcbc;">（内容区 / 结果列表）</div>
+        </div>
+        <!-- ★ 状态栏右侧新增链接 -->
+        <div class="mini-statusbar">
+          <span>就绪</span>
+          <span class="stat">文件: <span class="num">12</span></span>
+          <span class="stat">匹配: <span class="num">30</span></span>
+          <span style="flex:1;"></span>
+          <span class="link">检查更新</span>
+          <span class="link">关于</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.compare-grid -->
+</div><!-- /.compare-section -->
+
 </body>
 </html>

@@ -1,0 +1,55 @@
+<Window x:Class="FastDog.TrayMenuWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TrayMenu"
+        Width="180"
+        SizeToContent="Height"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowActivated="True"
+        Topmost="True"
+        ResizeMode="NoResize">
+    <!-- WPF 矢量渲染圆角，天然抗锯齿；复用下拉框同款圆角+投影风格 -->
+    <Border Background="White" CornerRadius="8" Padding="4"
+            BorderBrush="#e0e0e0" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Opacity="0.18" BlurRadius="16"
+                              ShadowDepth="3" Direction="270"/>
+        </Border.Effect>
+        <StackPanel>
+            <Border x:Name="ShowItem" CornerRadius="5" Padding="12,8" Background="Transparent"
+                    MouseLeftButtonUp="ShowItem_MouseLeftButtonUp"
+                    MouseEnter="Item_MouseEnter" MouseLeave="Item_MouseLeave"
+                    Cursor="Hand">
+                <TextBlock Text="显示 FastDog" FontSize="13" Foreground="#1e1e1e"/>
+            </Border>
+
+            <Separator Margin="6,2" Background="#e0e0e0"/>
+
+            <Border x:Name="CheckUpdateItem" CornerRadius="5" Padding="12,8" Background="Transparent"
+                    MouseLeftButtonUp="CheckUpdateItem_MouseLeftButtonUp"
+                    MouseEnter="Item_MouseEnter" MouseLeave="Item_MouseLeave"
+                    Cursor="Hand">
+                <TextBlock Text="检查更新" FontSize="13" Foreground="#1e1e1e"/>
+            </Border>
+
+            <Border x:Name="AboutItem" CornerRadius="5" Padding="12,8" Background="Transparent"
+                    MouseLeftButtonUp="AboutItem_MouseLeftButtonUp"
+                    MouseEnter="Item_MouseEnter" MouseLeave="Item_MouseLeave"
+                    Cursor="Hand">
+                <TextBlock Text="关于…" FontSize="13" Foreground="#1e1e1e"/>
+            </Border>
+
+            <Separator Margin="6,2" Background="#e0e0e0"/>
+
+            <Border x:Name="ExitItem" CornerRadius="5" Padding="12,8" Background="Transparent"
+                    MouseLeftButtonUp="ExitItem_MouseLeftButtonUp"
+                    MouseEnter="Item_MouseEnter" MouseLeave="Item_MouseLeave"
+                    Cursor="Hand">
+                <TextBlock Text="退出" FontSize="13" Foreground="#1e1e1e"/>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>

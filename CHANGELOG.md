@@ -19,6 +19,65 @@
 
 ---
 
+## [1.2.0] - 2026-06-29
+
+### 新增
+
+- **最小化到系统托盘**：关闭主窗口（标题栏 ✕ 或 Alt+F4）时不再退出程序，
+  而是直接隐藏到系统托盘，便于后台常驻、随用随调。托盘图标复用
+  `newLogo1.2.ico`，**左键单击**图标直接恢复窗口（符合常见托盘图标交互习惯），
+  右键单击弹出「显示 FastDog / 退出」菜单。真正退出仅在托盘菜单选择「退出」时
+  发生，退出前照常保存搜索会话与窗口布局。涉及 `App.xaml`（移除 `StartupUri`、
+  改 `OnExplicitShutdown`）、`App.xaml.cs`（`NotifyIcon` 生命周期）、
+  `MainWindow.xaml.cs`（`OnClosing` 拦截 + `Quit()`）。
+
+- **输入历史自动补全**：搜索路径与搜索内容输入框现在支持历史补全——
+  聚焦输入框即下拉显示全部历史项，继续输入则按前缀过滤；支持 ↑/↓ 选择、
+  Enter 提交、Esc 关闭，鼠标点击项即填入。路径与内容各自独立去重持久化
+  （各 50 条上限，`%APPDATA%\FastDog\input-history.json`）。新增
+  `Services/InputHistoryService.cs`、`InputHistoryPopupController.cs`，
+  `MainViewModel` 集成补全建议集合并在搜索成功后记录输入历史。
+
+- **关于窗口**：托盘右键菜单新增「关于…」入口，弹出居中模态窗口展示应用
+  Logo、版本号（程序集 Version，与 csproj `<Version>` 同源）、简介、技术栈
+  （.NET 8 / WPF / AvalonEdit / ripgrep）、GitHub 仓库链接。窗口内置「检查
+  更新」按钮，与托盘菜单形成双入口。新增 `AboutWindow.xaml(.cs)`。
+
+- **检查更新**：托盘右键菜单新增「检查更新」入口（关于窗口内也有）。调用
+  GitHub Releases API 获取最新版本，与本地程序集版本比对（支持 `v1.2.0` 格式
+  tag 解析）；发现新版本后提示用户下载，流式安装到 `%TEMP%\FastDog-Setup-{version}.exe`
+  并自动打开，用户自行安装。已封装为 `Services/UpdateService.cs`（GitHub API
+  对接 + 版本比对 + 资产匹配 + 流式下载）、`UpdateProgressWindow.xaml(.cs)`
+  （下载进度弹窗）。
+
+### 变更
+
+- **托盘右键菜单视觉统一**：原 WinForms 默认的蓝紫渐变菜单替换为自定义 WPF
+  圆角菜单窗口（`TrayMenuWindow`）——矢量渲染圆角（8px，无锯齿）、白底卡片
+  + 投影、暖灰边框、蓝色悬停高亮 `#0e639c`，与主窗口风格一致。改用 WPF 窗口
+  而非 WinForms `ContextMenuStrip`，规避了 Region 裁剪必然产生的锯齿。
+
+- **输入历史下拉框视觉优化**：下拉面板改为圆角白底 + 投影，使其悬浮于窗口
+  内容之上、与背景清晰区分；列表项改为圆角卡片样式（选中蓝底白字、悬停浅灰）。
+  相关样式提取为 App.xaml 全局资源 `HistoryListItem` / `HistoryPopupContent`。
+
+### 修复
+
+- **托盘右键菜单位置错乱（偏到图标右下方、离图标很远）**：菜单定位前测量自身尺寸
+  时对未显示的 `Window` 调 `Measure`，WPF 返回 0×0，导致定位偏移取 0、菜单左上角
+  钉在光标处向右下展开。改为测量内容根元素取真实尺寸。顺带修正水平定位三元分支
+  （越界时未左对齐）、菜单窗口补 `Topmost` 以免被任务栏/溢出面板遮挡，并用
+  `GetDpiForMonitor`（光标所在屏）替换 `GetDpiForSystem`（主屏）兼容混合 DPI 多屏。
+  涉及 `TrayMenuWindow.xaml(.cs)`、`App.xaml.cs`。
+
+- **点击托盘菜单项导致进程崩溃（鼠标转圈数秒后退出）**：`TrayMenuWindow` 主动
+  `Close()` 时会先触发 `OnDeactivated`，后者无守卫地再次 `Close()`，对正在关闭的
+  窗口重入调用抛 `InvalidOperationException`，异常逃逸出事件处理器后被 Dispatcher
+  终止进程。加 `_isClosing` 守卫统一收口到 `CloseMenu()`，并将点击回调改为菜单
+  关闭后 `Dispatcher.BeginInvoke` 异步执行，避免 `Close()`/`Show()` 同栈交互。
+
+---
+
 ## [1.1.1] - 2026-06-27
 
 ### 变更

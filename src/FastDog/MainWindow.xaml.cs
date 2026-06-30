@@ -1,14 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using FastDog.Models;
 using FastDog.ViewModels;
 using FastDog.Services;
+using FastDog.Helpers;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Highlighting;
+using TextBox = System.Windows.Controls.TextBox;
+using ListBox = System.Windows.Controls.ListBox;
 
 namespace FastDog;
 
@@ -17,6 +21,8 @@ public partial class MainWindow : Window
     private MainViewModel? _vm;
     private TextMarkerService? _markerService;
     private readonly LayoutConfigService _layoutService = new();
+    // 托盘退出时置 true，使 OnClosing 放行真正关闭；否则点 X 仅隐藏到托盘
+    private bool _forceClose;
 
     /// <summary>
     /// 当前应用版本号（取自程序集 Version，与 csproj 的 &lt;Version&gt; 同源）。
@@ -39,6 +45,12 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+
+        // 应用 Win11 原生圆角
+        if (DwmHelper.SupportsNativeCorners())
+        {
+            DwmHelper.SetWindowCornerPreference(this);
+        }
 
         var config = _layoutService.Load();
         if (config is null) return;
@@ -67,6 +79,9 @@ public partial class MainWindow : Window
 
         _vm = DataContext as MainViewModel;
         if (_vm is null) return;
+
+        // 绑定输入历史自动补全控制器（搜索路径 / 搜索内容各一个）
+        SetupInputHistoryControllers();
 
         var editor = FindEditor();
         if (editor is null) return;
@@ -157,6 +172,31 @@ public partial class MainWindow : Window
     private TextEditor? FindEditor()
     {
         return this.FindName("PreviewEditor") as TextEditor;
+    }
+
+    /// <summary>
+    /// 实例化两个输入历史自动补全控制器，分别绑定搜索路径 / 搜索内容输入框。
+    /// 控件在 XAML 中通过 x:Name 命名，这里按名取出再交给控制器接管交互。
+    /// </summary>
+    private void SetupInputHistoryControllers()
+    {
+        if (FindName("SearchPathTextBox") is TextBox pathBox &&
+            FindName("SearchPathPopup") is Popup pathPopup &&
+            FindName("SearchPathList") is ListBox pathList &&
+            DataContext is MainViewModel vm)
+        {
+            _ = new InputHistoryPopupController(pathBox, pathPopup, pathList,
+                value => vm.SearchPath = value);
+        }
+
+        if (FindName("SearchTextTextBox") is TextBox textBox &&
+            FindName("SearchTextPopup") is Popup textPopup &&
+            FindName("SearchTextList") is ListBox textList &&
+            DataContext is MainViewModel vm2)
+        {
+            _ = new InputHistoryPopupController(textBox, textPopup, textList,
+                value => vm2.SearchText = value);
+        }
     }
 
     private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -394,6 +434,28 @@ public partial class MainWindow : Window
         {
             // 静默失败，布局保存不应影响正常使用
         }
+    }
+
+    /// <summary>
+    /// 由托盘「退出」菜单调用：置标志后真正关闭，触发 OnClosed 持久化会话/布局。
+    /// </summary>
+    public void Quit()
+    {
+        _forceClose = true;
+        Close();
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        // 非强制关闭（用户点 X 或 Alt+F4）→ 隐藏到托盘而非退出进程
+        if (!_forceClose)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)

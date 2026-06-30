@@ -17,7 +17,8 @@
       "Bash(dotnet publish *)",
       "PowerShell(Get-Item publish\\\\FastDog.exe | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime)",
       "PowerShell(Copy-Item *)",
-      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\" installer.iss)"
+      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\" installer.iss)",
+      "PowerShell(Start-Process \"E:\\\\demo\\\\ai\\\\my\\\\fastdog\\\\src\\\\FastDog\\\\bin\\\\Debug\\\\net8.0-windows\\\\FastDog.exe\")"
     ]
   },
   "enabledPlugins": {

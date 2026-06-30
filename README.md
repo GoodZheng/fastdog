@@ -27,6 +27,8 @@
 - **🎯 Precise Control** — Regex support, case sensitivity, whole word matching
 - **📁 Smart Filtering** — Include/exclude files by pattern, skip binary files
 - **💾 Layout Persistence** — Window position and search history auto-saved
+- **📌 System Tray** — Close to tray; keep FastDog running for on-demand searches
+- **⌨️ Input Autocomplete** — Recent paths and search terms offered as you type
 - **🎨 Modern UI** — VS Code-inspired design, clean and professional
 - **📦 Single Executable** — No installation required, just download and run
 - **🔍 Instant Preview** — See matched lines in context immediately
@@ -96,9 +98,9 @@ Configuration stored in `%APPDATA%\FastDog\`
 Future enhancements planned for upcoming releases:
 
 - **🌐 Installer Localization** — Multi-language installer wizard (e.g., Simplified Chinese / English), letting users select UI language during setup
-- **📌 Minimize to System Tray** — Keep FastDog running in the background when the window is closed; access it via the system tray icon for quick, on-demand searches
 - **🐛 Search History Rendering Issue** — Fix an issue where the search history tab fails to display saved entries; investigate the history persistence and data-binding pipeline
-- **⌨️ Input History Autocomplete** — Persist previously entered search paths and search terms; offer a dropdown of recent inputs in the search path and search content fields for quick reuse
+- **ℹ️ About Dialog** — Add an "About" window showing app name, version, tech stack, and links (e.g., repository, license)
+- **🔄 Check for Updates** — Add a "Check for Updates" feature that detects new releases and notifies the user
 
 ### 🏗️ Tech Stack
 

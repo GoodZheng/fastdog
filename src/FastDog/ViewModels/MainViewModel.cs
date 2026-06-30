@@ -13,6 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly SearchService _searchService = new();
     private readonly FilePreviewService _previewService = new();
     private readonly SearchHistoryService _historyService = new();
+    private readonly InputHistoryService _inputHistoryService = new();
 
     // --- 搜索条件 ---
     [ObservableProperty] private string _searchPath = string.Empty;
@@ -30,6 +31,10 @@ public partial class MainViewModel : ObservableObject
     // --- 搜索结果 ---
     public ObservableCollection<SearchResult> SearchResults { get; } = [];
     public ObservableCollection<MatchLine> MatchLines { get; } = [];
+
+    // --- 输入历史自动补全建议（搜索路径 / 搜索内容各自独立） ---
+    public ObservableCollection<string> SearchPathSuggestions { get; } = [];
+    public ObservableCollection<string> SearchTextSuggestions { get; } = [];
 
     [ObservableProperty] private SearchResult? _selectedResult;
     [ObservableProperty] private MatchLine? _selectedMatchLine;
@@ -69,6 +74,12 @@ public partial class MainViewModel : ObservableObject
         // 加载历史到 UI
         foreach (var entry in _historyService.LoadHistory())
             HistoryEntries.Add(entry);
+
+        // 加载输入历史到补全建议
+        foreach (var path in _inputHistoryService.LoadSearchPaths())
+            SearchPathSuggestions.Add(path);
+        foreach (var text in _inputHistoryService.LoadSearchTexts())
+            SearchTextSuggestions.Add(text);
 
         // 恢复上次会话条件
         var lastSession = _historyService.GetLastSession();
@@ -192,6 +203,18 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 将一次输入记入补全建议表：空值跳过，去重后倒序置顶，并同步落盘。
+    /// </summary>
+    private static void AddInputHistory(ObservableCollection<string> suggestions, string value, Action<string> persist)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        value = value.Trim();
+        if (suggestions.Contains(value)) suggestions.Remove(value);
+        suggestions.Insert(0, value);
+        persist(value);
+    }
+
     // --- 命令 ---
 
     [RelayCommand]
@@ -209,6 +232,10 @@ public partial class MainViewModel : ObservableObject
             System.Windows.MessageBox.Show("搜索路径不存在", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
+        // 记录输入历史（路径与内容各自去重，倒序置顶，供下次自动补全）
+        AddInputHistory(SearchPathSuggestions, SearchPath, _inputHistoryService.AddSearchPath);
+        AddInputHistory(SearchTextSuggestions, SearchText, _inputHistoryService.AddSearchText);
 
         SearchResults.Clear();
         MatchLines.Clear();

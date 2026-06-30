@@ -82,3 +82,9 @@ dotnet test FastDog.sln
 - **LayoutConfigService**: 窗口布局持久化（位置、尺寸、最大化状态、GridSplitter 分割比例），独立 JSON 文件存储
 
 rg.exe 通过 `--json` 模式输出，`IAsyncEnumerable<RgEvent>` 流式推送结果到 UI。
+
+
+# 必须遵守的规则和约束（重点）
+
+- 尽可能符合 `MVVM`  的开发规范；
+

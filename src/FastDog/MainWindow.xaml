@@ -14,14 +14,13 @@
         Background="#f3f3f3"
         UseLayoutRounding="True">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="36" GlassFrameThickness="0"
+        <shell:WindowChrome CaptionHeight="36" GlassFrameThickness="-1"
                             ResizeBorderThickness="6" CornerRadius="0"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
     <Window.Template>
         <ControlTemplate TargetType="Window">
-            <Border Background="{TemplateBinding Background}"
-                    BorderBrush="#cccccc" BorderThickness="1">
+            <Border Background="{TemplateBinding Background}">
                 <ContentPresenter/>
             </Border>
         </ControlTemplate>
@@ -84,16 +83,54 @@
                     <Button DockPanel.Dock="Right" Content="浏览..."
                             Command="{Binding BrowseCommand}"
                             Style="{StaticResource ActionButton}" Margin="6,0,0,0"/>
-                    <TextBox Text="{Binding SearchPath, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource SearchInput}"/>
+                    <Grid>
+                        <TextBox x:Name="SearchPathTextBox"
+                                 Text="{Binding SearchPath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource SearchInput}"/>
+                        <Popup x:Name="SearchPathPopup"
+                               Placement="Bottom"
+                               PlacementTarget="{Binding ElementName=SearchPathTextBox}"
+                               StaysOpen="True"
+                               Width="{Binding ActualWidth, ElementName=SearchPathTextBox}"
+                               PopupAnimation="Fade"
+                               AllowsTransparency="True">
+                            <Border Style="{StaticResource HistoryPopupContent}">
+                                <ListBox x:Name="SearchPathList"
+                                         ItemsSource="{Binding SearchPathSuggestions}"
+                                         BorderThickness="0" Background="Transparent"
+                                         ItemContainerStyle="{StaticResource HistoryListItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </DockPanel>
 
                 <!-- 搜索内容 -->
                 <DockPanel Margin="0,0,0,8">
                     <TextBlock Text="搜索内容" FontSize="12" Foreground="#9a9a9a"
                                Width="55" VerticalAlignment="Center"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource SearchInput}"/>
+                    <Grid>
+                        <TextBox x:Name="SearchTextTextBox"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource SearchInput}"/>
+                        <Popup x:Name="SearchTextPopup"
+                               Placement="Bottom"
+                               PlacementTarget="{Binding ElementName=SearchTextTextBox}"
+                               StaysOpen="True"
+                               Width="{Binding ActualWidth, ElementName=SearchTextTextBox}"
+                               PopupAnimation="Fade"
+                               AllowsTransparency="True">
+                            <Border Style="{StaticResource HistoryPopupContent}">
+                                <ListBox x:Name="SearchTextList"
+                                         ItemsSource="{Binding SearchTextSuggestions}"
+                                         BorderThickness="0" Background="Transparent"
+                                         ItemContainerStyle="{StaticResource HistoryListItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </DockPanel>
 
                 <!-- 按钮行 -->
