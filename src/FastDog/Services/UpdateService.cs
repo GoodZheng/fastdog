@@ -19,7 +19,7 @@ public sealed class UpdateService : IDisposable
         $"https://github.com/{RepoOwner}/{RepoName}/releases/latest";
     private const string AssetNamePrefix = "FastDog-Setup-";
     private const string AssetNameSuffix = ".exe";
-    private const int CacheHours = 24; // 缓存有效期（小时）
+    private const int CacheSeconds = 10; // 缓存有效期（秒）
 
     private readonly HttpClient _http;
 
@@ -60,7 +60,7 @@ public sealed class UpdateService : IDisposable
 
     /// <summary>
     /// 查询 GitHub releases/latest，与本地版本比对。
-    /// 先检查本地缓存（24 小时有效），避免频繁触发 API 限流。
+    /// 先检查本地缓存（10 秒有效），避免频繁触发 API 限流。
     /// 网络失败抛 <see cref="HttpRequestException"/>；tag 格式不规范或找不到资产时
     /// 返回 <see cref="UpdateInfo"/>，其中 <see cref="UpdateInfo.HasUpdate"/> = false 或
     /// <see cref="UpdateInfo.DownloadUrl"/> = null（回退到 Release 页面）。
@@ -140,7 +140,7 @@ public sealed class UpdateService : IDisposable
     }
 
     /// <summary>
-    /// 尝试从缓存加载结果。缓存有效期 24 小时。
+    /// 尝试从缓存加载结果。缓存有效期 10 秒。
     /// </summary>
     private static bool TryLoadCache(out UpdateInfo info)
     {
@@ -155,9 +155,9 @@ public sealed class UpdateService : IDisposable
             if (cache is null || cache.CheckedAt is null)
                 return false;
 
-            // 检查缓存是否过期（24 小时）
-            var hoursSinceCheck = (DateTime.Now - cache.CheckedAt.Value).TotalHours;
-            if (hoursSinceCheck > CacheHours)
+            // 检查缓存是否过期（10 秒）
+            var secondsSinceCheck = (DateTime.Now - cache.CheckedAt.Value).TotalSeconds;
+            if (secondsSinceCheck > CacheSeconds)
                 return false;
 
             info = cache.Info;

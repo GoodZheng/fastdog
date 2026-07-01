@@ -208,6 +208,22 @@ public partial class MainWindow : Window
             vm.OpenFileCommand.Execute(null);
     }
 
+    /// <summary>
+    /// 同步 DataGrid 多选到 ViewModel.SelectedResults。
+    /// DataGrid.SelectedItems 不是 DependencyProperty，无法直接绑定，故在此桥接。
+    /// 注意：SelectedResult（焦点项/预览项）由 SelectedItem 双向绑定单独维护，
+    /// 这里**不能**再向 SelectedResult 反向赋值——那样会经双向绑定反推回 DataGrid，
+    /// 把多选重置为单选，导致批量打开/复制只剩一个文件。
+    /// </summary>
+    private void ResultsGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        vm.SelectedResults.Clear();
+        foreach (SearchResult item in ResultsGrid.SelectedItems)
+            vm.SelectedResults.Add(item);
+    }
+
     private void MatchList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         // 只有双击匹配行才跳转，忽略空白处

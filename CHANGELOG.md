@@ -19,6 +19,39 @@
 
 ---
 
+## [1.3.0] - 2026-07-01
+
+### 新增
+
+- **文件列表多选**：搜索结果文件列表支持 Shift（范围选择）/ Ctrl（增减选择）
+  + 鼠标点击多选。复制文件名/路径、打开文件均支持批量操作（多选时换行拼接复制、
+  逐个打开），预览面板始终跟随焦点（最近点击）项。`MainViewModel.cs`、
+  `MainWindow.xaml(.cs)`。
+- **「在资源管理器中打开」定位选中文件**：原先仅打开父目录，现改用
+  `explorer /select,"<文件全路径>"`，在资源管理器中高亮选中目标文件
+  （`MainViewModel.cs`）。多选时该项禁用（explorer 不支持同时高亮多文件）。
+
+### 变更
+
+- **列表项选中/悬停配色统一为蓝色系**：文件列表与匹配行列表原先悬停为灰色、
+  匹配行选中为黄色，色调不一致。现统一为蓝色梯度——悬停浅蓝（`#eaf3fb`）、
+  选中淡蓝（`#c6e3ff`，复用 `AccentBgBrush`），匹配行左侧装饰条改为主色蓝。
+  新增颜色资源 `AccentBgHoverBrush`，并重写 `DataGridRow`/`DataGridCell`/
+  `ListBoxItem` 的 `ControlTemplate` 以彻底覆盖系统选中灰
+  （`App.xaml`、`MainWindow.xaml`）。
+- **检查更新缓存缩短**：`UpdateService` 结果缓存有效期由 24 小时调整为
+  10 秒（`CacheHours` → `CacheSeconds`，`UpdateService.cs`），方便快速验证更新流程，
+  调试时不再需要手动清理缓存或等待 24 小时。
+
+### 修复
+
+- **复制操作偶发崩溃**：多选复制文件名/路径时，若其它进程（输入法、剪贴板工具等）
+  占用剪贴板，`Clipboard.SetText` 会抛 `ExternalException` 导致程序崩溃。新增
+  `Helpers/ClipboardHelper.cs`，改走原生 Win32 API（绕过 OLE）并带重试 + 回退，
+  失败时在状态栏提示而非崩溃。
+
+---
+
 ## [1.2.1] - 2026-06-30
 
 ### 新增

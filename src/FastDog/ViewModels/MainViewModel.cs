@@ -39,6 +39,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private SearchResult? _selectedResult;
     [ObservableProperty] private MatchLine? _selectedMatchLine;
 
+    // --- 文件多选 ---
+    // DataGrid.SelectedItems 不是 DependencyProperty，无法直接绑定，由 MainWindow.xaml.cs
+    // 在 SelectionChanged 中同步过来。OpenInExplorer 仅在单选时可用。
+    public ObservableCollection<SearchResult> SelectedResults { get; } = [];
+
     // --- 状态栏 ---
     [ObservableProperty] private bool _isSearching = false;
     [ObservableProperty] private string _statusText = "就绪";
@@ -81,6 +86,9 @@ public partial class MainViewModel : ObservableObject
         foreach (var text in _inputHistoryService.LoadSearchTexts())
             SearchTextSuggestions.Add(text);
 
+        // 多选集合变化时刷新 OpenInExplorer 的可用状态（多选时禁用）
+        SelectedResults.CollectionChanged += (_, _) => OpenInExplorerCommand.NotifyCanExecuteChanged();
+
         // 恢复上次会话条件
         var lastSession = _historyService.GetLastSession();
         if (lastSession is not null)
@@ -102,6 +110,9 @@ public partial class MainViewModel : ObservableObject
         IsFileError = false;
         FileErrorMessage = string.Empty;
         IsFileTruncated = false;
+
+        // 焦点项变化时刷新“在资源管理器中打开”的可用状态（清空选中时应灰显）
+        OpenInExplorerCommand.NotifyCanExecuteChanged();
 
         if (value is null) return;
 
@@ -215,6 +226,14 @@ public partial class MainViewModel : ObservableObject
         persist(value);
     }
 
+    /// <summary>
+    /// 设置剪贴板文本，对剪贴板锁争抢鲁棒。先走原生 Win32 API（不经 OLE），
+    /// 失败再回退到 WPF Clipboard.SetText。仍失败则静默返回 false，
+    /// 避免 ExternalException 未捕获导致整个进程崩溃。
+    /// </summary>
+    private static bool TrySetClipboardText(string text)
+        => Helpers.ClipboardHelper.TrySetText(text, System.Windows.Application.Current?.MainWindow);
+
     // --- 命令 ---
 
     [RelayCommand]
@@ -293,12 +312,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenFile()
     {
-        if (SelectedResult is null) return;
-        try
+        // 多选时打开所有选中文件；单选时打开焦点项
+        var targets = SelectedResults.Count > 0 ? SelectedResults.ToList()
+                   : SelectedResult is not null ? [SelectedResult]
+                   : [];
+        foreach (var r in targets)
         {
-            Process.Start(new ProcessStartInfo(SelectedResult.FilePath) { UseShellExecute = true });
+            try { Process.Start(new ProcessStartInfo(r.FilePath) { UseShellExecute = true }); }
+            catch { }
         }
-        catch { }
     }
 
     [RelayCommand]
@@ -327,31 +349,46 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void CopyPath()
     {
-        if (SelectedResult is null) return;
-        System.Windows.Clipboard.SetText(SelectedResult.FilePath);
-        StatusText = "已复制路径";
+        // 多选时换行拼接所有路径；单选时复制焦点项
+        var targets = SelectedResults.Count > 0 ? SelectedResults.ToList()
+                   : SelectedResult is not null ? [SelectedResult]
+                   : [];
+        if (targets.Count == 0) return;
+        if (TrySetClipboardText(string.Join(Environment.NewLine, targets.Select(r => r.FilePath))))
+            StatusText = targets.Count > 1 ? $"已复制 {targets.Count} 个路径" : "已复制路径";
+        else
+            StatusText = "复制失败：剪贴板被占用，请重试";
     }
 
     [RelayCommand]
     private void CopyFileName()
     {
-        if (SelectedResult is null) return;
-        System.Windows.Clipboard.SetText(SelectedResult.FileName);
-        StatusText = "已复制文件名";
+        // 多选时换行拼接所有文件名；单选时复制焦点项
+        var targets = SelectedResults.Count > 0 ? SelectedResults.ToList()
+                   : SelectedResult is not null ? [SelectedResult]
+                   : [];
+        if (targets.Count == 0) return;
+        if (TrySetClipboardText(string.Join(Environment.NewLine, targets.Select(r => r.FileName))))
+            StatusText = targets.Count > 1 ? $"已复制 {targets.Count} 个文件名" : "已复制文件名";
+        else
+            StatusText = "复制失败：剪贴板被占用，请重试";
     }
 
-    [RelayCommand]
+    // 多选时禁用：explorer /select 不支持同时高亮多个文件
+    [RelayCommand(CanExecute = nameof(CanOpenInExplorer))]
     private void OpenInExplorer()
     {
         if (SelectedResult is null) return;
         try
         {
-            var dir = System.IO.Path.GetDirectoryName(SelectedResult.FilePath);
-            if (dir is not null)
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+            // /select,<path> 让资源管理器打开父目录并定位选中该文件
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{SelectedResult.FilePath}\"")
+                { UseShellExecute = true });
         }
         catch { }
     }
+
+    private bool CanOpenInExplorer() => SelectedResults.Count <= 1 && SelectedResult is not null;
 
     // --- 历史操作 ---
 

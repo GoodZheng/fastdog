@@ -8,7 +8,8 @@
 
         <!-- ========== Color Theme（VS Code 风极简配色） ========== -->
         <SolidColorBrush x:Key="AccentBrush" Color="#0e639c"/>
-        <SolidColorBrush x:Key="AccentBgBrush" Color="#cce5ff"/>
+        <SolidColorBrush x:Key="AccentBgBrush" Color="#c6e3ff"/>
+        <SolidColorBrush x:Key="AccentBgHoverBrush" Color="#eaf3fb"/>
         <SolidColorBrush x:Key="DarkBrush" Color="#1e1e1e"/>
         <SolidColorBrush x:Key="DangerBrush" Color="#c0392b"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#27ae60"/>

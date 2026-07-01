@@ -329,19 +329,19 @@
                 </Grid.RowDefinitions>
 
                 <!-- 文件列表 -->
-                <DataGrid Grid.Row="0"
+                <DataGrid x:Name="ResultsGrid"
+                          Grid.Row="0"
                           ItemsSource="{Binding SearchResults}"
                           SelectedItem="{Binding SelectedResult}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
-                          SelectionMode="Single"
+                          SelectionMode="Extended"
                           HeadersVisibility="Column"
                           GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="#f0f0f0"
                           BorderThickness="0"
                           Background="White"
-                          RowBackground="White"
-                          AlternatingRowBackground="White"
+                          SelectionChanged="ResultsGrid_SelectionChanged"
                           MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader">
@@ -362,14 +362,27 @@
                             </Style.Triggers>
                         </Style>
                         <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="White"/>
                             <Setter Property="Cursor" Value="Hand"/>
                             <Setter Property="FontSize" Value="13"/>
+                            <!-- 重写 row 模板：Border 明确绑定 Background，否则默认模板在
+                                 选中/焦点时用系统色（HighlightBrushKey/ControlBrushKey 灰）
+                                 替换背景，使上方 style trigger 的配色形同虚设。 -->
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridRow">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <DataGridCellsPresenter/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#e8e8e8"/>
+                                    <Setter Property="Background" Value="{StaticResource AccentBgHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#cce5ff"/>
+                                    <Setter Property="Background" Value="{StaticResource AccentBgBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -377,6 +390,18 @@
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="Padding" Value="6,4"/>
                             <Setter Property="Focusable" Value="False"/>
+                            <!-- 重写模板：cell 背景透明，让所在 row 的 Background（由 row 样式
+                                 的 trigger 决定选中/悬停配色）直接透出。cell 自身不画背景，
+                                 彻底切断系统选中色（ControlBrushKey 灰）的覆盖路径。 -->
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridCell">
+                                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter Property="Foreground" Value="#1e1e1e"/>
@@ -493,14 +518,29 @@
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                                     <Setter Property="Cursor" Value="Hand"/>
+                                    <!-- 重写模板：背景/边框透传自身属性，避免默认模板用系统
+                                         选中色（SystemColors.HighlightBrushKey）盖掉自定义配色 -->
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
                                     <Style.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#fffbe6"/>
-                                            <Setter Property="BorderBrush" Value="#b8860b"/>
+                                            <Setter Property="Background" Value="{StaticResource AccentBgBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                                             <Setter Property="BorderThickness" Value="3,0,0,0"/>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#e8e8e8"/>
+                                            <Setter Property="Background" Value="{StaticResource AccentBgHoverBrush}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
