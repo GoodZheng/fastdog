@@ -89,10 +89,12 @@ public partial class MainWindow : Window
         if (editor is null) return;
 
         // 安装 AvalonEdit 内置查找面板：Ctrl+F 唤起、选中文本预填、切换文件自动重跑均由内置实现覆盖。
-        // MarkerBrush 设橙色，与主搜索黄色高亮（TextMarkerService，KnownLayer.Background）通过
-        // KnownLayer.Selection 物理隔离。
+        // MarkerBrush 设浅橙（所有命中项），与主搜索黄色高亮（TextMarkerService，KnownLayer.Background）通过
+        // KnownLayer.Selection 物理隔离。SelectionBrush 设深橙（当前跳转项，全局选区色）。
         _searchPanel = SearchPanel.Install(editor);
         _searchPanel.MarkerBrush = (System.Windows.Media.Brush)FindResource("FindMatchBrush");
+        editor.TextArea.SelectionBrush = (System.Windows.Media.Brush)FindResource("FindCurrentBrush");
+        editor.TextArea.SelectionForeground = System.Windows.Media.Brushes.White;
 
         _vm.PropertyChanged += (s, args) =>
         {

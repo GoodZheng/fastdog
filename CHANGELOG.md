@@ -29,6 +29,15 @@
   上一个。复用 AvalonEdit 内置 `SearchPanel`，选中文本自动预填、切换文件自动
   重跑查找（`App.xaml`、`MainWindow.xaml.cs`）。
 
+### 变更
+
+- **查找框 UI 美化**：重写 AvalonEdit `SearchPanel` 的 `ControlTemplate`——圆角 6 +
+  投影的白底容器、圆角 4 聚焦变蓝的输入框、`Path` 几何图标按钮（替换原生
+  `prev.png`/`next.png`），对齐项目 VS Code 风配色（`App.xaml`）。
+- **当前命中项配色**：查找跳转到的当前项由系统蓝绿选区色改为深橙 `#e67300`
+  + 白字（设 `TextArea.SelectionBrush`/`SelectionForeground`），与所有命中项的
+  浅橙 `#ff9900` 区分。该色为全局选区色，手动选中文字同样生效（`MainWindow.xaml.cs`）。
+
 ---
 
 ## [1.3.0] - 2026-07-01
