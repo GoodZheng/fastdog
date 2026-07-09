@@ -427,7 +427,7 @@
                                     </TextBox.Template>
                                 </TextBox>
                                 <!-- 选项下拉（大小写/全词/正则） -->
-                                <search:DropDownButton Height="26" Margin="2,0">
+                                <search:DropDownButton Height="26" Margin="1,0">
                                     <search:DropDownButton.DropDownContent>
                                         <Popup StaysOpen="False" Name="PART_dropdownPopup"
                                                AllowsTransparency="True" PopupAnimation="Fade">
@@ -458,7 +458,7 @@
                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </search:DropDownButton>
                                 <!-- 上一个 -->
-                                <Button Margin="2,0" Height="26" Width="26"
+                                <Button Margin="1,0" Height="26" Width="26"
                                         Command="search:SearchCommands.FindPrevious"
                                         ToolTip="{Binding Localization.FindPreviousText, RelativeSource={RelativeSource TemplatedParent}}"
                                         Background="Transparent" BorderThickness="0">
@@ -479,7 +479,7 @@
                                     </Button.Template>
                                 </Button>
                                 <!-- 下一个 -->
-                                <Button Margin="2,0" Height="26" Width="26"
+                                <Button Margin="1,0" Height="26" Width="26"
                                         Command="search:SearchCommands.FindNext"
                                         ToolTip="{Binding Localization.FindNextText, RelativeSource={RelativeSource TemplatedParent}}"
                                         Background="Transparent" BorderThickness="0">
@@ -500,7 +500,7 @@
                                     </Button.Template>
                                 </Button>
                                 <!-- 关闭 -->
-                                <Button Margin="2,0" Height="26" Width="26"
+                                <Button Margin="1,0" Height="26" Width="26"
                                         Command="search:SearchCommands.CloseSearchPanel"
                                         Background="Transparent" BorderThickness="0" Focusable="False">
                                     <Button.Template>

@@ -37,6 +37,10 @@
 - **当前命中项配色**：查找跳转到的当前项由系统蓝绿选区色改为深橙 `#e67300`
   + 白字（设 `TextArea.SelectionBrush`/`SelectionForeground`），与所有命中项的
   浅橙 `#ff9900` 区分。该色为全局选区色，手动选中文字同样生效（`MainWindow.xaml.cs`）。
+- **查找栏汉化**：`SearchPanel` 选项与提示由英文改为中文（区分大小写 / 全词匹配 /
+  正则表达式、上/下一个、未找到匹配项），新增 `Helpers/SearchPanelLocalization.cs`
+  覆盖 AvalonEdit `Localization`（`MainWindow.xaml.cs`）。
+- **查找栏间距收紧**：选项箭头、上/下/关闭按钮间水平间距由 2px 缩至 1px（`App.xaml`）。
 
 ---
 

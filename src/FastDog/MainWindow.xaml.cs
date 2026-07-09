@@ -93,6 +93,7 @@ public partial class MainWindow : Window
         // KnownLayer.Selection 物理隔离。SelectionBrush 设深橙（当前跳转项，全局选区色）。
         _searchPanel = SearchPanel.Install(editor);
         _searchPanel.MarkerBrush = (System.Windows.Media.Brush)FindResource("FindMatchBrush");
+        _searchPanel.Localization = new SearchPanelLocalization();
         editor.TextArea.SelectionBrush = (System.Windows.Media.Brush)FindResource("FindCurrentBrush");
         editor.TextArea.SelectionForeground = System.Windows.Media.Brushes.White;
 
