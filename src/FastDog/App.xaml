@@ -428,7 +428,7 @@
                                 </TextBox>
                                 <!-- 查找计数 N / M（通过 SearchPanel.Tag 传入；空值时隐藏） -->
                                 <TextBlock Text="{TemplateBinding Tag}" FontSize="12" Foreground="#6a6a6a"
-                                           VerticalAlignment="Center" Margin="6,0,4,0">
+                                           VerticalAlignment="Center" Margin="3,0,2,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Visible"/>

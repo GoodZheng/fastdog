@@ -69,7 +69,7 @@ public sealed class PreviewFindCounter : IDisposable
 
         int m = _matchStarts.Count;
         int n = CurrentIndex(_area.Caret.Offset, _matchStarts);
-        _update($"{n} / {m}");
+        _update($"{n}/{m}");
     }
 
     /// <summary>
