@@ -426,6 +426,20 @@
                                         </ControlTemplate>
                                     </TextBox.Template>
                                 </TextBox>
+                                <!-- 查找计数 N / M（通过 SearchPanel.Tag 传入；空值时隐藏） -->
+                                <TextBlock Text="{TemplateBinding Tag}" FontSize="12" Foreground="#6a6a6a"
+                                           VerticalAlignment="Center" Margin="6,0,4,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 <!-- 选项下拉（大小写/全词/正则） -->
                                 <search:DropDownButton Height="26" Margin="1,0">
                                     <search:DropDownButton.DropDownContent>

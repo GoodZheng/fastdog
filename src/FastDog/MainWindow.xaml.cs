@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private MainViewModel? _vm;
     private TextMarkerService? _markerService;
     private SearchPanel? _searchPanel;
+    private PreviewFindCounter? _findCounter;
     private readonly LayoutConfigService _layoutService = new();
     // 托盘退出时置 true，使 OnClosing 放行真正关闭；否则点 X 仅隐藏到托盘
     private bool _forceClose;
@@ -96,6 +97,12 @@ public partial class MainWindow : Window
         _searchPanel.Localization = new SearchPanelLocalization();
         editor.TextArea.SelectionBrush = (System.Windows.Media.Brush)FindResource("FindCurrentBrush");
         editor.TextArea.SelectionForeground = System.Windows.Media.Brushes.White;
+
+        // 查找计数 N / M：自行用 SearchStrategyFactory 重算（SearchPanel 内部结果集合为 internal），
+        // 通过 SearchPanel.Tag 传给模板里的计数 TextBlock；null/空 表示隐藏。
+        _findCounter = new PreviewFindCounter(_searchPanel, editor.TextArea,
+            text => _searchPanel.Tag = text ?? string.Empty);
+        _findCounter.Attach();
 
         _vm.PropertyChanged += (s, args) =>
         {
@@ -487,6 +494,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _findCounter?.Dispose();
         if (DataContext is MainViewModel vm)
             vm.SaveSession();
         SaveLayout();

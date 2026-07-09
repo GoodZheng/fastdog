@@ -28,6 +28,10 @@
   支持大小写 / 全词 / 正则切换，`Enter`/`F3` 下一个、`Shift+Enter`/`Shift+F3`
   上一个。复用 AvalonEdit 内置 `SearchPanel`，选中文本自动预填、切换文件自动
   重跑查找（`App.xaml`、`MainWindow.xaml.cs`）。
+- **查找计数显示**：查找栏显示"第 N 项，共 M 项"实时计数（类似 VS Code），随搜索词
+  变化、`F3`/`Enter` 跳转、切换文件实时刷新；无匹配时自动隐藏。因 AvalonEdit 内部
+  匹配集合为 internal，新增 `Helpers/PreviewFindCounter.cs` 用公开 `SearchStrategyFactory`
+  自行重算匹配数与当前序号，经 `SearchPanel.Tag` 传入模板 TextBlock 显示。
 
 ### 变更
 
