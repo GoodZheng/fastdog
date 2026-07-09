@@ -20,6 +20,7 @@
         <SolidColorBrush x:Key="MutedTextBrush" Color="#9a9a9a"/>
         <SolidColorBrush x:Key="HighlightBgBrush" Color="#fffbe6"/>
         <SolidColorBrush x:Key="HoverBgBrush" Color="#e8e8e8"/>
+        <SolidColorBrush x:Key="FindMatchBrush" Color="#ff9900"/>
 
         <!-- ========== Converters ========== -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
