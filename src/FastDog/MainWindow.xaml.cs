@@ -11,6 +11,7 @@ using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.AvalonEdit.Search;
 using TextBox = System.Windows.Controls.TextBox;
 using ListBox = System.Windows.Controls.ListBox;
 
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
 {
     private MainViewModel? _vm;
     private TextMarkerService? _markerService;
+    private SearchPanel? _searchPanel;
     private readonly LayoutConfigService _layoutService = new();
     // 托盘退出时置 true，使 OnClosing 放行真正关闭；否则点 X 仅隐藏到托盘
     private bool _forceClose;
@@ -85,6 +87,12 @@ public partial class MainWindow : Window
 
         var editor = FindEditor();
         if (editor is null) return;
+
+        // 安装 AvalonEdit 内置查找面板：Ctrl+F 唤起、选中文本预填、切换文件自动重跑均由内置实现覆盖。
+        // MarkerBrush 设橙色，与主搜索黄色高亮（TextMarkerService，KnownLayer.Background）通过
+        // KnownLayer.Selection 物理隔离。
+        _searchPanel = SearchPanel.Install(editor);
+        _searchPanel.MarkerBrush = (System.Windows.Media.Brush)FindResource("FindMatchBrush");
 
         _vm.PropertyChanged += (s, args) =>
         {
