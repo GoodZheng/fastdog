@@ -472,7 +472,7 @@
                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </search:DropDownButton>
                                 <!-- 上一个 -->
-                                <Button Margin="1,0" Height="26" Width="26"
+                                <Button Margin="1,0,0,0" Height="26" Width="26"
                                         Command="search:SearchCommands.FindPrevious"
                                         ToolTip="{Binding Localization.FindPreviousText, RelativeSource={RelativeSource TemplatedParent}}"
                                         Background="Transparent" BorderThickness="0">
