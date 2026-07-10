@@ -16,9 +16,10 @@
 src/FastDog/
   Models/          SearchQuery, SearchResult, MatchLine, SearchHistoryEntry, LayoutConfig
   Services/        RipgrepBridge (rg 进程管理), SearchService (业务逻辑), FilePreviewService (文件加载/偏移计算), TextMarkerService (匹配高亮渲染), SearchHistoryService (搜索历史JSON持久化), LayoutConfigService (布局持久化)
+  Helpers/         ClipboardHelper (原生 Win32 剪贴板), DwmHelper (Win11 圆角), InputHistoryPopupController (输入历史自动补全), SearchPanelLocalization (查找栏中文本地化), PreviewFindCounter (查找 N/M 计数重算)
   ViewModels/      MainViewModel
   MainWindow.xaml  搜索条件区(Logo+按钮行选项) + 自定义标签栏(搜索结果/历史) + 匹配行列表(左) + 文件预览(右)
-  App.xaml         颜色主题资源 + 全局控件样式（ToggleOptionButton, TabButtonStyle 等）
+  App.xaml         颜色主题资源 + 全局控件样式（ToggleOptionButton, TabButtonStyle, SearchPanel 等）
 tests/FastDog.Tests/
   ArgumentBuilderTests, JsonParserTests, DateFilterTests, FilePreviewServiceTests, SearchHistoryServiceTests, LayoutConfigServiceTests
 tools/
@@ -38,6 +39,7 @@ docs/
 - 搜索结果：文件列表（DataGrid，蓝色匹配数徽章）+ 匹配行列表（左，黄色选中高亮+橙色左边框）+ 文件预览面板（右，AvalonEdit）
 - 文件预览：全文显示、行号、语法高亮、所有匹配文本黄色背景标记
 - 点击匹配行自动滚动到预览区对应位置
+- 预览内二次查找：Ctrl+F 唤起 AvalonEdit 内置 SearchPanel，在预览文件内搜索；命中项浅橙高亮(#ff9900)、当前项深橙(#e67300)+白字；自定义圆角投影查找栏(中文选项)、N/M 实时计数
 - 大文件（>5MB）截断显示，二进制文件提示"无法预览"
 - 双击打开文件 / 双击匹配行跳转行号（VS Code）
 - 右键菜单：复制路径、复制文件名
@@ -77,8 +79,9 @@ dotnet test FastDog.sln
 - **RipgrepBridge**: 查找 rg.exe、构建命令参数、解析 JSON 输出、管理进程生命周期
 - **SearchService**: 搜索编排、文件结果聚合、日期过滤、事件通知
 - **FilePreviewService**: 文件加载、二进制检测、大文件截断（>5MB/5000行）、行内偏移→全局偏移转换
-- **TextMarkerService**: AvalonEdit IBackgroundRenderer，黄色半透明背景标记匹配文本
+- **TextMarkerService**: AvalonEdit IBackgroundRenderer（KnownLayer.Background），黄色半透明背景标记主搜索匹配文本
 - **MainViewModel**: 所有 UI 状态和命令，通过事件接收搜索结果，选中文件时加载预览并计算匹配偏移
+- **预览内查找**（MainWindow.xaml.cs 装配）：复用 AvalonEdit 内置 `SearchPanel.Install(editor)`——Ctrl+F 唤起、选中文本预填、切换文件自动重跑均由内置实现覆盖；命中项橙色 `MarkerBrush`(KnownLayer.Selection) 与主搜索黄色物理隔离。当前项深橙经 `TextArea.SelectionBrush` 全局选区色实现。N/M 计数因 SearchPanel 内部结果集合为 internal，由 `PreviewFindCounter` 用公开 `SearchStrategyFactory` 自行重算
 - **SearchHistoryService**: 搜索历史持久化（JSON，%APPDATA%\FastDog\），去重合并、50条上限、会话保存/恢复
 - **LayoutConfigService**: 窗口布局持久化（位置、尺寸、最大化状态、GridSplitter 分割比例），独立 JSON 文件存储
 

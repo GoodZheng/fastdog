@@ -101,7 +101,34 @@ _searchPanel.MarkerBrush = (Brush)FindResource("FindMatchBrush");
 - [ ] 二进制/错误/空文件状态 → Ctrl+F 不唤起查找栏
 - [ ] 大文件截断预览 → 查找仅在已加载部分生效
 
-## 后续可扩展（非本期）
+## 实现演进（原"后续可扩展"两项已落地）
 
-- 自定义 `SearchPanel` 的 `ControlTemplate`，将默认 UI 改为 VS Code 风格（如需视觉统一）
-- 查找结果计数显示（`N/M`）——内置 SearchPanel 不提供，需扩展
+初版仅做最小装配（Install + MarkerBrush），随后基于使用反馈做了以下增强，均超出本 spec 原始范围但已实现并记录于 CHANGELOG v1.4.0：
+
+### 当前项深橙高亮
+
+初版所有命中项统一浅橙，当前跳转项被 AvalonEdit 系统选区色（蓝绿）覆盖，视觉不统一。
+**改法**：设 `editor.TextArea.SelectionBrush` = 深橙 `#e67300`（新增 `FindCurrentBrush` 资源）+ `SelectionForeground` = 白。
+**权衡**：`SelectionBrush` 是全局选区色，手动选中文字也呈深橙（VS Code 同此行为，可接受）。
+
+### 查找栏 ControlTemplate 重写（VS Code 风）
+
+重写 `App.xaml` 中 `search:SearchPanel` 的 `ControlTemplate`：
+- 外层 Border 圆角 6 + 投影（对齐 `HistoryPopupContent`）
+- 输入框圆角 4、聚焦边框变蓝（对齐 `SearchInput`，含必需的 `PART_ContentHost`）
+- 上/下/关闭按钮用 `Path` 几何图标替代原生 `prev.png`/`next.png`（FastDog 无这些图片资源）
+- **必须保留** `PART_searchTextBox`、`PART_dropdownPopup` 及三个按钮的 `Command` 绑定
+
+### 查找栏汉化
+
+新增 `Helpers/SearchPanelLocalization.cs` 子类化 AvalonEdit `Localization`，覆盖 7 项文本为中文
+（区分大小写 / 全词匹配 / 正则表达式 / 上下一个 / 未找到匹配项 / 错误），经 `_searchPanel.Localization` 应用。
+
+### N/M 实时计数
+
+内置 `SearchPanel` 不提供计数，其匹配集合 `renderer.CurrentResults` 为 internal。
+**改法**：新增 `Helpers/PreviewFindCounter.cs`，订阅 `SearchOptionsChanged` + `Caret.PositionChanged` + `DocumentChanged`，
+用公开 `SearchStrategyFactory.Create(...).FindAll(...)` 自行重算匹配 offset 列表，二分查找当前序号（对齐 VS Code，到末尾回绕）。
+计数经 `SearchPanel.Tag`（object 属性）传入模板 TextBlock，空值时 `DataTrigger` 折叠隐藏。
+**坑**：`ISearchResult`（继承 `ISegment`）的起始偏移属性是 `.Offset`，非 `.StartOffset`（后者只在具体类 `TextSegment`/`SearchResult` 上）。
+

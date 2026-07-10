@@ -44,7 +44,7 @@
 - **查找栏汉化**：`SearchPanel` 选项与提示由英文改为中文（区分大小写 / 全词匹配 /
   正则表达式、上/下一个、未找到匹配项），新增 `Helpers/SearchPanelLocalization.cs`
   覆盖 AvalonEdit `Localization`（`MainWindow.xaml.cs`）。
-- **查找栏间距收紧**：选项箭头、上/下/关闭按钮间水平间距由 2px 缩至 1px（`App.xaml`）。
+- **查找栏间距收紧**：选项箭头、上/下/关闭按钮间水平边距统一置零紧凑排列；计数 `1/2` 紧凑显示（`App.xaml`、`Helpers/PreviewFindCounter.cs`）。
 
 ---
 
