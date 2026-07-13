@@ -309,7 +309,17 @@ public partial class App : System.Windows.Application
 
             var logPath = Path.Combine(logDir, "error.log");
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            var message = $"[{timestamp}] {context}\n{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}\n\n";
+            var message = $"[{timestamp}] {context}\n{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}";
+
+            // 记录 InnerException 链（包括类型、消息、堆栈）
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                message += $"\n---> {inner.GetType().Name}: {inner.Message}\n{inner.StackTrace}";
+                inner = inner.InnerException;
+            }
+
+            message += "\n\n";
 
             File.AppendAllText(logPath, message);
             return logPath;

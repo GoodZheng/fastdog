@@ -77,16 +77,45 @@ public sealed class UpdateService : IDisposable
         {
             response = await _http.GetAsync(ReleasesLatestUrl, ct).ConfigureAwait(false);
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
-            throw new HttpRequestException($"网络请求失败：{ex.Message}", ex);
+            // 默认请求失败，尝试使用系统代理重试
+            try
+            {
+                using var proxyHandler = new HttpClientHandler
+                {
+                    UseProxy = true,
+                    Proxy = HttpClient.DefaultProxy
+                };
+                using var proxyHttp = new HttpClient(proxyHandler)
+                {
+                    DefaultRequestHeaders = { { "User-Agent", "FastDog" } }
+                };
+                response = await proxyHttp.GetAsync(ReleasesLatestUrl, ct).ConfigureAwait(false);
+            }
+            catch (HttpRequestException retryEx)
+            {
+                // 两次都失败，记录完整异常链
+                throw new HttpRequestException(
+                    $"网络请求失败（已尝试直连和系统代理）：{retryEx.Message}", retryEx);
+            }
         }
 
         // 处理 403 Rate Limit
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
+            // 提取 Rate Limit 头部信息
+            response.Headers.TryGetValues("X-RateLimit-Remaining", out var remainingValues);
+            response.Headers.TryGetValues("X-RateLimit-Reset", out var resetValues);
+            var remaining = remainingValues?.FirstOrDefault() ?? "N/A";
+            var reset = resetValues?.FirstOrDefault() ?? "N/A";
+
+            var innerEx = new HttpRequestException(
+                $"HTTP 403 Forbidden, Rate Limit Remaining: {remaining}, Reset: {reset}");
+
             throw new RateLimitExceededException(
-                "GitHub API 限流（未认证请求每小时仅 60 次）。请稍后再试，或等待 24 小时后自动恢复。");
+                "GitHub API 限流（未认证请求每小时仅 60 次）。请稍后再试，或等待 24 小时后自动恢复。",
+                innerEx);
         }
 
         // 处理 404（仓库不存在或没有 Release）
@@ -274,6 +303,7 @@ public sealed class UpdateService : IDisposable
 public sealed class RateLimitExceededException : Exception
 {
     public RateLimitExceededException(string message) : base(message) { }
+    public RateLimitExceededException(string message, Exception innerException) : base(message, innerException) { }
 }
 
 /// <summary>

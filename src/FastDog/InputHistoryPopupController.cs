@@ -40,6 +40,19 @@ public class InputHistoryPopupController
         _textBox.TextChanged += OnTextChanged;
         _textBox.PreviewKeyDown += OnPreviewKeyDown;
         _listBox.PreviewMouseLeftButtonDown += OnListBoxMouseDown;
+
+        // StaysOpen=True 的 Popup 是独立顶层 Win32 窗口，切换到其他程序时主窗口
+        // Deactivated 但 TextBox 逻辑焦点不丢失（LostFocus 不触发），导致 Popup 仍浮在
+        // 其他应用之上。订阅宿主窗口失活事件，失活即关闭 Popup。
+        // （控制器与窗口同生命周期，无需取消订阅。）
+        var host = Window.GetWindow(_textBox);
+        if (host is not null)
+            host.Deactivated += OnHostDeactivated;
+    }
+
+    private void OnHostDeactivated(object? sender, EventArgs e)
+    {
+        _popup.IsOpen = false;
     }
 
     private void OnGotFocus(object sender, RoutedEventArgs e)

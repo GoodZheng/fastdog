@@ -19,6 +19,22 @@
 
 ---
 
+## [1.4.1]
+
+### 修复
+
+- **输入历史下拉框不再悬浮于其他程序窗口之上**：搜索路径/搜索内容输入框聚焦时弹出的
+  历史补全下拉框（`Popup`，`StaysOpen=True`）是独立顶层 Win32 窗口，切换到其他程序时
+  主窗口 `Deactivated` 但 `TextBox` 逻辑焦点不丢失（`LostFocus` 不触发），导致下拉框
+  仍浮在其他应用窗口之上。`InputHistoryPopupController` 现订阅宿主窗口 `Deactivated`
+  事件，失活即关闭下拉框（`InputHistoryPopupController.cs`）。
+- **错误日志记录完整异常链**：`App.LogException` 现在遍历 `InnerException` 链，逐层
+  记录内层异常的类型、消息和堆栈（`--->` 分隔），便于诊断被外层异常包装的真实根因
+  （`App.xaml.cs`）。
+- **检查更新网络请求增强**：直连 GitHub 失败时，自动用系统代理重试一次（
+  `HttpClient.DefaultProxy`），并在 403 限流异常中附带 `X-RateLimit-Remaining` /
+  `X-RateLimit-Reset` 头部信息，方便定位限流恢复时间（`UpdateService.cs`）。
+
 ## [1.4.0] - 2026-07-10
 
 ### 新增
