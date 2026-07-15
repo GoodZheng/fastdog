@@ -40,9 +40,11 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 .cancel-btn { background: #fff; color: var(--text-gray); border: 1px solid var(--border); border-radius: 3px; padding: 5px 14px; font-size: 13px; cursor: pointer; }
 
 /* ===== Content ===== */
-#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 #file-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.table-wrap { flex: 2; overflow: auto; min-height: 80px; }
+/* 对齐桌面版 Grid RowDefinition 2*:Auto:3* —— 文件列表 40%、下半区 60%。
+   min-height:0 让 flex 子项可收缩（否则表格内容会撑高 table-wrap 把下半区压扁）。 */
+.table-wrap { flex: 2; overflow: auto; min-height: 0; }
 #file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 #file-table th { background: #fafafa; color: var(--text-gray); font-weight: 600; font-size: 12px; padding: 7px 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
 #file-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; }
@@ -58,14 +60,14 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 
 .splitter-h { height: 3px; background: var(--border); cursor: row-resize; flex-shrink: 0; }
 
-#bottom-panel { flex: 3; display: flex; min-height: 100px; }
-.bottom-col { display: flex; flex-direction: column; min-width: 0; }
+#bottom-panel { flex: 3; display: flex; min-height: 0; }
+.bottom-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 #match-panel { flex: 35; }
 #preview-panel { flex: 65; position: relative; }
 .splitter-v { width: 2px; background: var(--border); cursor: col-resize; flex-shrink: 0; }
 .panel-header { padding: 6px 10px; font-size: 12px; color: var(--text-gray); border-bottom: 1px solid var(--border); background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
 .panel-header b { color: #c0392b; margin: 0 4px; }
-.scroll { flex: 1; overflow: auto; background: #fff; }
+.scroll { flex: 1; overflow: auto; background: #fff; min-height: 0; }
 
 #match-list { font-family: Consolas, Monaco, monospace; font-size: 12px; }
 .match-item { padding: 4px 8px; cursor: pointer; white-space: pre; border-left: 3px solid transparent; }

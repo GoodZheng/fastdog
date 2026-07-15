@@ -28,11 +28,11 @@
         <label class="toggle"><input type="checkbox" id="opt-word" />全词匹配</label>
         <span class="separator">|</span>
         <!-- 文件过滤（标签按钮内联编辑）-->
-        <button id="tag-filefilter" class="tag-btn">文件: *.cs;*.txt</button>
+        <button id="tag-filefilter" class="tag-btn">文件: *</button>
         <input id="input-filefilter" class="tag-input hidden" type="text" placeholder="*.cs;*.txt" />
         <!-- 排除目录 -->
-        <button id="tag-exclude" class="tag-btn">排除: node_modules</button>
-        <input id="input-exclude" class="tag-input hidden" type="text" placeholder="node_modules;dist" />
+        <button id="tag-exclude" class="tag-btn">排除: bin;obj</button>
+        <input id="input-exclude" class="tag-input hidden" type="text" placeholder="bin;obj;node_modules" />
         <span class="separator">|</span>
         <!-- 日期范围 -->
         <label class="toggle"><input type="checkbox" id="date-toggle" />📅 日期范围</label>

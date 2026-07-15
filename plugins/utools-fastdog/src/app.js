@@ -56,9 +56,9 @@
     // 文件过滤标签内联编辑
     bindTagEdit(els.tagFileFilter, els.inputFileFilter, '文件: ');
     bindTagEdit(els.tagExclude, els.inputExclude, '排除: ');
-    // 默认值
-    els.inputFileFilter.value = '*.cs;*.txt';
-    els.inputExclude.value = 'node_modules';
+    // 默认值（对齐桌面版 MainViewModel：FileFilter=空，ExcludeDirs="bin;obj"）
+    els.inputFileFilter.value = '';
+    els.inputExclude.value = 'bin;obj';
     refreshTag(els.tagFileFilter, els.inputFileFilter, '文件: ');
     refreshTag(els.tagExclude, els.inputExclude, '排除: ');
 
@@ -94,7 +94,15 @@
     });
   }
   function refreshTag(btn, input, prefix) {
-    btn.textContent = prefix + (input.value || '');
+    // 对齐桌面版 FileFilterDisplay / ExcludeDirsDisplay：空时显示 * 或 (无)
+    const val = input.value.trim();
+    let text;
+    if (prefix === '文件: ') {
+      text = val ? ('文件: ' + val) : '文件: *';
+    } else {
+      text = val ? ('排除: ' + val) : '排除: (无)';
+    }
+    btn.textContent = text;
   }
 
   // ===== 按钮绑定 =====
