@@ -376,6 +376,10 @@
     const matchByLine = new Map();
     for (const m of matches) matchByLine.set(m.lineNumber, m);
 
+    // 行号列宽按最大行数位数动态计算（最小 2 字符宽），避免小文件行号列过宽
+    const linenoCh = Math.max(2, String(lines.length).length);
+    els.previewCode.style.setProperty('--lineno-ch', linenoCh + 'ch');
+
     let html = '';
     for (let i = 0; i < lines.length; i++) {
       const ln = i + 1;
