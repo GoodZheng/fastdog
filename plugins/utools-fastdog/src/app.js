@@ -516,22 +516,53 @@
     fd.saveLayout(data);
   }
 
-  // ===== 右键菜单 =====
+  // ===== 右键菜单（浮动 DOM 菜单，对齐桌面版右键体验）=====
+  let contextMenu = null;
   function showFileMenu(e, r) {
     e.preventDefault();
-    const action = ['打开文件', '在资源管理器中打开', '复制文件名', '复制文件路径'];
-    utools.showMessageBox({
-      type: 'question',
-      title: '文件操作',
-      message: r.fileName,
-      buttons: action,
-    }, (idx) => {
-      if (idx === 0) fd.openFile(r.filePath);
-      else if (idx === 1) fd.openInExplorer(r.filePath);
-      else if (idx === 2) fd.copyText(r.fileName);
-      else if (idx === 3) fd.copyText(r.filePath);
+    e.stopPropagation();
+    closeContextMenu();
+
+    const items = [
+      { label: '打开文件', action: () => fd.openFile(r.filePath) },
+      { label: '在资源管理器中打开', action: () => fd.openInExplorer(r.filePath) },
+      { sep: true },
+      { label: '复制文件名', action: () => fd.copyText(r.fileName) },
+      { label: '复制文件路径', action: () => fd.copyText(r.filePath) },
+    ];
+
+    contextMenu = document.createElement('div');
+    contextMenu.className = 'ctx-menu';
+    items.forEach((it) => {
+      if (it.sep) {
+        const sep = document.createElement('div');
+        sep.className = 'ctx-sep';
+        contextMenu.appendChild(sep);
+        return;
+      }
+      const item = document.createElement('div');
+      item.className = 'ctx-item';
+      item.textContent = it.label;
+      item.addEventListener('click', () => { it.action(); closeContextMenu(); });
+      contextMenu.appendChild(item);
     });
+    document.body.appendChild(contextMenu);
+
+    // 定位到鼠标位置（防止超出右下边界）
+    contextMenu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+    contextMenu.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
   }
+
+  function closeContextMenu() {
+    if (contextMenu) { contextMenu.remove(); contextMenu = null; }
+  }
+
+  // 点击空白处关闭右键菜单
+  document.addEventListener('click', closeContextMenu);
+  document.addEventListener('contextmenu', (e) => {
+    // 右键在菜单项以外的地方：关闭当前菜单（由具体行的 contextmenu 处理后再决定是否打开新的）
+    if (!e.target.closest('.ctx-item')) closeContextMenu();
+  }, true);
 
   // ===== 工具 =====
   function formatSize(bytes) {
