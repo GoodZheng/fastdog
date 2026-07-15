@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>FastDog</title>
+  <link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ========== Header：搜索条件区（对应 MainWindow Header Border）========== -->
+    <header id="search-header">
+      <div class="field-row">
+        <label class="field-label">搜索路径</label>
+        <input id="search-path" type="text" class="search-input" />
+        <button id="btn-browse" class="action-btn">浏览...</button>
+      </div>
+      <div class="field-row">
+        <label class="field-label">搜索内容</label>
+        <input id="search-text" type="text" class="search-input" />
+      </div>
+      <div class="options-row">
+        <!-- 搜索模式（RadioButton 二选一）-->
+        <label class="toggle"><input type="radio" name="mode" value="regex" id="mode-regex" checked />正则表达式</label>
+        <label class="toggle"><input type="radio" name="mode" value="text" id="mode-text" />纯文本</label>
+        <!-- 选项 -->
+        <label class="toggle"><input type="checkbox" id="opt-case" />区分大小写 (Aa)</label>
+        <label class="toggle"><input type="checkbox" id="opt-word" />全词匹配</label>
+        <span class="separator">|</span>
+        <!-- 文件过滤（标签按钮内联编辑）-->
+        <button id="tag-filefilter" class="tag-btn">文件: *.cs;*.txt</button>
+        <input id="input-filefilter" class="tag-input hidden" type="text" placeholder="*.cs;*.txt" />
+        <!-- 排除目录 -->
+        <button id="tag-exclude" class="tag-btn">排除: node_modules</button>
+        <input id="input-exclude" class="tag-input hidden" type="text" placeholder="node_modules;dist" />
+        <span class="separator">|</span>
+        <!-- 日期范围 -->
+        <label class="toggle"><input type="checkbox" id="date-toggle" />📅 日期范围</label>
+        <input id="date-from" type="date" class="date-input hidden" />
+        <span id="date-sep" class="hidden">~</span>
+        <input id="date-to" type="date" class="date-input hidden" />
+        <!-- 操作按钮 -->
+        <span class="spacer"></span>
+        <button id="btn-search" class="search-btn">搜索</button>
+        <button id="btn-cancel" class="cancel-btn">取消</button>
+      </div>
+    </header>
+
+    <!-- ========== Content（上文件列表 2 : 下分栏 3）========== -->
+    <main id="content">
+      <!-- 文件列表（对应 ResultsGrid）-->
+      <section id="file-panel">
+        <div class="table-wrap" id="file-table-wrap">
+          <table id="file-table">
+            <thead>
+              <tr>
+                <th class="col-name">文件名</th>
+                <th class="col-size">大小</th>
+                <th class="col-match">匹配数</th>
+                <th class="col-path">路径</th>
+                <th class="col-mtime">修改时间</th>
+              </tr>
+            </thead>
+            <tbody id="file-tbody"></tbody>
+          </table>
+        </div>
+        <div class="splitter-h" id="splitter-h"></div>
+        <!-- 下半区：左匹配行 + 右预览 -->
+        <div id="bottom-panel">
+          <div id="match-panel" class="bottom-col">
+            <div class="panel-header">
+              <span>匹配行 <b id="match-count">0</b> — <span id="match-filename"></span></span>
+            </div>
+            <div id="match-list" class="scroll"></div>
+          </div>
+          <div class="splitter-v" id="splitter-v"></div>
+          <div id="preview-panel" class="bottom-col">
+            <div class="panel-header">
+              <span>文件预览 — <span id="preview-filename"></span></span>
+              <label class="toggle"><input type="checkbox" id="opt-wrap" />自动换行</label>
+            </div>
+            <div id="preview-wrap" class="scroll">
+              <pre id="preview-pre"><code id="preview-code"></code></pre>
+            </div>
+            <div id="preview-find" class="hidden"></div>
+            <div id="binary-hint" class="center-hint hidden">二进制文件，无法预览</div>
+            <div id="truncate-hint" class="truncate-hint hidden">文件过大，仅显示部分内容</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========== 状态栏（对应 StatusBar）========== -->
+    <footer id="status-bar">
+      <span id="status-text">就绪</span>
+      <span class="status-right">
+        <span>文件: <b id="stat-files">0</b></span>
+        <span>匹配: <b id="stat-matches">0</b></span>
+        <span>耗时: <b id="stat-elapsed">0s</b></span>
+      </span>
+    </footer>
+  </div>
+
+  <script src="src/highlight.js"></script>
+  <script src="src/previewFind.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
