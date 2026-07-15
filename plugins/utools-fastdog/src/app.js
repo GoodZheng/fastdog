@@ -332,7 +332,11 @@
     r.matches.forEach((m) => {
       const div = document.createElement('div');
       div.className = 'match-item';
-      const lineHtml = H.highlightLine(m.lineText, m.matchStart, m.matchEnd).replace(/\n$/, '');
+      // trim 行首空白以对齐桌面版 DisplayText；matchStart/matchEnd 是基于原始行文本的
+      // UTF-8 字节偏移，前导空白多为 ASCII（字节数=字符数），同步减去前导长度修正高亮位置
+      const leading = m.lineText.length - m.lineText.replace(/^\s+/, '').length;
+      const trimmed = m.lineText.slice(leading);
+      const lineHtml = H.highlightLine(trimmed, m.matchStart - leading, m.matchEnd - leading).replace(/\n$/, '');
       div.innerHTML =
         '<span class="ln">' + m.lineNumber + '</span>' + lineHtml;
       div.addEventListener('click', () => {
