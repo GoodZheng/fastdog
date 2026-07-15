@@ -75,10 +75,10 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 .scroll { flex: 1; overflow: auto; background: #fff; min-height: 0; }
 
 #match-list { font-family: Consolas, Monaco, monospace; font-size: 12px; width: 100%; text-align: left; }
-.match-item { padding: 4px 8px; cursor: pointer; white-space: pre; border-left: 3px solid transparent; display: flex; align-items: baseline; }
+.match-item { padding: 4px 6px; cursor: pointer; white-space: pre; border-left: 3px solid transparent; display: flex; align-items: baseline; }
 .match-item:hover { background: var(--accent-bg-hover); }
 .match-item.selected { background: var(--accent-bg); border-left-color: var(--accent); }
-.match-item .ln { color: var(--text-gray); flex-shrink: 0; width: 48px; text-align: right; margin-right: 8px; }
+.match-item .ln { color: var(--text-gray); flex-shrink: 0; width: 32px; text-align: right; margin-right: 6px; }
 
 #preview-pre { font-family: Consolas, Monaco, monospace; font-size: 13px; padding: 0 8px; }
 #preview-code { white-space: pre; }
