@@ -1,5 +1,5 @@
 {
-  "pluginName": "FastDog 文本搜索",
+  "pluginName": "全文检索",
   "author": "zhengmingy",
   "homepage": "https://github.com/zhengmingy/fastdog",
   "version": "0.1.0",
@@ -11,14 +11,14 @@
   "features": [
     {
       "code": "fastdog",
-      "explain": "FastDog — 基于 ripgrep 的文本搜索",
+      "explain": "全文检索 — 基于 ripgrep 的高速文本搜索",
       "cmds": ["fd", "fastdog", "搜索", "文本搜索"],
       "main": "index.html"
     },
     {
       "code": "fastdog-search-text",
-      "explain": "用 FastDog 搜索该文本",
-      "cmds": [{ "type": "over", "label": "FastDog 搜索选中内容", "minLength": 1 }],
+      "explain": "用全文检索搜索该文本",
+      "cmds": [{ "type": "over", "label": "全文检索搜索选中内容", "minLength": 1 }],
       "main": "index.html"
     },
     {
