@@ -7,6 +7,8 @@
   const H = window.FastDogHighlight;
   let allResults = [];        // 当前搜索结果
   let selectedResult = null;  // 当前选中文件
+  // 当前布局状态（拖拽时更新，mouseup 时持久化）。初始从已恢复的 layout 继承。
+  const currentLayout = { rowRatio: null, colRatio: null, colWidths: {} };
 
   // ===== DOM 引用 =====
   const $ = (id) => document.getElementById(id);
@@ -30,12 +32,15 @@
 
   // ===== 初始化：恢复上次路径 + 监听进入事件预填 =====
   function init() {
-    els.path.value = fd.getLastPath() || '';
     bindOptions();
     bindButtons();
     bindSplitters();
     bindDragDrop();
     initColumnResize();
+
+    // 恢复上次会话（搜索条件）+ 布局（分割比例 + 列宽）
+    restoreSession();
+    restoreLayout();
 
     // uTools 进入事件（preload 派发 fastdog:enter）
     window.addEventListener('fastdog:enter', (e) => {
@@ -43,6 +48,62 @@
     });
     // 若 preload 已先于本脚本执行设置过 enter
     if (window.__fastdogEnter) applyEnter(window.__fastdogEnter);
+  }
+
+  // ===== 会话恢复：把上次的搜索条件填回 UI =====
+  function restoreSession() {
+    const s = fd.getSession();
+    if (!s) {
+      // 无历史会话，仅恢复路径
+      els.path.value = fd.getLastPath() || '';
+      return;
+    }
+    els.path.value = s.searchPath || '';
+    els.text.value = s.searchText || '';
+    els.modeRegex.checked = !!s.isRegex;
+    els.modeText.checked = !s.isRegex;
+    els.optCase.checked = !!s.caseSensitive;
+    els.optWord.checked = !!s.wholeWord;
+    els.inputFileFilter.value = s.fileFilter || '';
+    els.inputExclude.value = s.excludeDirs || '';
+    refreshTag(els.tagFileFilter, els.inputFileFilter, '文件: ');
+    refreshTag(els.tagExclude, els.inputExclude, '排除: ');
+    if (s.dateFilterEnabled) {
+      els.dateToggle.checked = true;
+      if (s.dateFrom) els.dateFrom.value = toDateInput(s.dateFrom);
+      if (s.dateTo) els.dateTo.value = toDateInput(s.dateTo);
+      els.dateFrom.classList.remove('hidden');
+      els.dateTo.classList.remove('hidden');
+      els.dateSep.classList.remove('hidden');
+    }
+  }
+
+  // ===== 布局恢复：分割比例 + 列宽 =====
+  function restoreLayout() {
+    const l = fd.getLayout();
+    if (!l) return;
+    if (l.rowRatio) {
+      $('file-table-wrap').style.flex = (l.rowRatio * 100) + ' 0 0';
+      $('bottom-panel').style.flex = ((1 - l.rowRatio) * 100) + ' 0 0';
+      currentLayout.rowRatio = l.rowRatio;
+    }
+    if (l.colRatio) {
+      $('match-panel').style.flex = (l.colRatio * 100) + ' 0 0';
+      $('preview-panel').style.flex = ((1 - l.colRatio) * 100) + ' 0 0';
+      currentLayout.colRatio = l.colRatio;
+    }
+    if (l.colWidths) {
+      const map = { colName: '.col-name', colSize: '.col-size', colMatch: '.col-match', colPath: '.col-path', colMtime: '.col-mtime' };
+      const ths = document.querySelectorAll('#file-table th');
+      ths.forEach((th) => {
+        for (const key in map) {
+          if (th.matches(map[key]) && l.colWidths[key]) {
+            th.style.width = l.colWidths[key] + 'px';
+            currentLayout.colWidths[key] = l.colWidths[key];
+          }
+        }
+      });
+    }
   }
 
   function applyEnter(enter) {
@@ -151,6 +212,19 @@
     if (!q.searchText) { setStatus('请输入搜索内容'); return; }
 
     fd.saveLastPath(q.searchPath);
+    // 保存完整会话（下次打开恢复）
+    fd.saveSession({
+      searchText: q.searchText,
+      searchPath: q.searchPath,
+      isRegex: q.isRegex,
+      caseSensitive: q.caseSensitive,
+      wholeWord: q.wholeWord,
+      fileFilter: q.fileFilter,
+      excludeDirs: q.excludeDirs,
+      dateFilterEnabled: q.dateFilterEnabled,
+      dateFrom: q.dateFrom ? q.dateFrom.toISOString() : null,
+      dateTo: q.dateTo ? q.dateTo.toISOString() : null,
+    });
     allResults = [];
     clearUI();
     setStatus('搜索中...');
@@ -295,6 +369,7 @@
           const bottom = $('bottom-panel');
           top.style.flex = (ratio * 100) + ' 0 0';
           bottom.style.flex = ((1 - ratio) * 100) + ' 0 0';
+          currentLayout.rowRatio = ratio;
         }
       } else {
         const rect = panel.getBoundingClientRect();
@@ -302,6 +377,7 @@
         if (ratio > 0.1 && ratio < 0.9) {
           $('match-panel').style.flex = (ratio * 100) + ' 0 0';
           $('preview-panel').style.flex = ((1 - ratio) * 100) + ' 0 0';
+          currentLayout.colRatio = ratio;
         }
       }
     });
@@ -309,11 +385,14 @@
       if (dragging) {
         dragging = false;
         document.body.style.cursor = '';
+        saveLayout();
       }
     });
   }
 
   // ===== 表格列宽拖拽（对齐桌面版 DataGrid 可拖列宽）=====
+  // th class → layout key 映射
+  const COL_KEY = { 'col-name': 'colName', 'col-size': 'colSize', 'col-match': 'colMatch', 'col-path': 'colPath', 'col-mtime': 'colMtime' };
   function initColumnResize() {
     const ths = document.querySelectorAll('#file-table th');
     ths.forEach((th) => {
@@ -324,6 +403,8 @@
       let dragging = false;
       let startX = 0;
       let startW = 0;
+      // 找到该 th 对应的 layout key
+      const key = COL_KEY[Object.keys(COL_KEY).find((c) => th.classList.contains(c))];
 
       resizer.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -340,6 +421,7 @@
         // table-layout:fixed 下，设 th 宽度即可生效
         const newW = Math.max(40, startW + (e.clientX - startX));
         th.style.width = newW + 'px';
+        if (key) currentLayout.colWidths[key] = newW;
       });
 
       document.addEventListener('mouseup', () => {
@@ -347,8 +429,18 @@
           dragging = false;
           document.body.style.cursor = '';
           document.body.style.userSelect = '';
+          saveLayout();
         }
       });
+    });
+  }
+
+  // ===== 布局持久化：把 currentLayout 存入 uTools dbStorage =====
+  function saveLayout() {
+    fd.saveLayout({
+      rowRatio: currentLayout.rowRatio,
+      colRatio: currentLayout.colRatio,
+      colWidths: currentLayout.colWidths,
     });
   }
 
@@ -382,6 +474,14 @@
     const p = (n) => String(n).padStart(2, '0');
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
       + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  // ISO 字符串 → <input type=date> 需要的 yyyy-MM-dd
+  function toDateInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   }
 
   document.addEventListener('DOMContentLoaded', init);

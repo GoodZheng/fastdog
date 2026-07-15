@@ -69,6 +69,31 @@ const fastdog = {
   saveLastPath(p) {
     utools.dbStorage.setItem('fastdog:lastPath', p);
   },
+
+  // ===== 会话恢复：保存/恢复完整搜索条件（对齐桌面版 SearchHistoryEntry 字段）=====
+  /**
+   * @param {object} s - { searchText, searchPath, isRegex, caseSensitive, wholeWord,
+   *                       fileFilter, excludeDirs, dateFilterEnabled, dateFrom, dateTo }
+   */
+  saveSession(s) {
+    utools.dbStorage.setItem('fastdog:session', s);
+  },
+
+  getSession() {
+    return utools.dbStorage.getItem('fastdog:session') || null;
+  },
+
+  // ===== 布局持久化：保存/恢复分割比例 + 列宽（对齐桌面版 LayoutConfig）=====
+  /**
+   * @param {object} l - { rowRatio, colRatio, colWidths: { colName, colSize, colMatch, colPath, colMtime } }
+   */
+  saveLayout(l) {
+    utools.dbStorage.setItem('fastdog:layout', l);
+  },
+
+  getLayout() {
+    return utools.dbStorage.getItem('fastdog:layout') || null;
+  },
 };
 
 window.fastdog = fastdog;
