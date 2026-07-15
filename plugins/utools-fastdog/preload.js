@@ -73,7 +73,7 @@ const fastdog = {
   // ===== 会话恢复：保存/恢复完整搜索条件（对齐桌面版 SearchHistoryEntry 字段）=====
   /**
    * @param {object} s - { searchText, searchPath, isRegex, caseSensitive, wholeWord,
-   *                       fileFilter, excludeDirs, dateFilterEnabled, dateFrom, dateTo }
+   *                       fileFilter, excludeDirs }
    */
   saveSession(s) {
     utools.dbStorage.setItem('fastdog:session', s);

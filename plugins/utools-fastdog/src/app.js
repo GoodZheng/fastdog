@@ -19,8 +19,6 @@
     optCase: $('opt-case'), optWord: $('opt-word'),
     tagFileFilter: $('tag-filefilter'), inputFileFilter: $('input-filefilter'),
     tagExclude: $('tag-exclude'), inputExclude: $('input-exclude'),
-    dateToggle: $('date-toggle'), dateFrom: $('date-from'), dateTo: $('date-to'),
-    dateSep: $('date-sep'),
     fileTbody: $('file-tbody'), matchList: $('match-list'), matchCount: $('match-count'),
     matchFilename: $('match-filename'),
     previewCode: $('preview-code'), previewFilename: $('preview-filename'),
@@ -68,14 +66,6 @@
     els.inputExclude.value = s.excludeDirs || '';
     refreshTag(els.tagFileFilter, els.inputFileFilter, '文件: ');
     refreshTag(els.tagExclude, els.inputExclude, '排除: ');
-    if (s.dateFilterEnabled) {
-      els.dateToggle.checked = true;
-      if (s.dateFrom) els.dateFrom.value = toDateInput(s.dateFrom);
-      if (s.dateTo) els.dateTo.value = toDateInput(s.dateTo);
-      els.dateFrom.classList.remove('hidden');
-      els.dateTo.classList.remove('hidden');
-      els.dateSep.classList.remove('hidden');
-    }
   }
 
   // ===== 布局恢复：分割比例 + 列宽 =====
@@ -123,14 +113,6 @@
     els.inputExclude.value = 'bin;obj';
     refreshTag(els.tagFileFilter, els.inputFileFilter, '文件: ');
     refreshTag(els.tagExclude, els.inputExclude, '排除: ');
-
-    // 日期折叠
-    els.dateToggle.addEventListener('change', () => {
-      const show = els.dateToggle.checked;
-      els.dateFrom.classList.toggle('hidden', !show);
-      els.dateTo.classList.toggle('hidden', !show);
-      els.dateSep.classList.toggle('hidden', !show);
-    });
 
     // 自动换行
     els.optWrap.addEventListener('change', () => {
@@ -199,9 +181,6 @@
       wholeWord: els.optWord.checked,
       fileFilter: els.inputFileFilter.value.trim(),
       excludeDirs: els.inputExclude.value.trim(),
-      dateFilterEnabled: els.dateToggle.checked,
-      dateFrom: els.dateFrom.value ? new Date(els.dateFrom.value) : null,
-      dateTo: els.dateTo.value ? new Date(els.dateTo.value) : null,
     };
   }
 
@@ -221,9 +200,6 @@
       wholeWord: q.wholeWord,
       fileFilter: q.fileFilter,
       excludeDirs: q.excludeDirs,
-      dateFilterEnabled: q.dateFilterEnabled,
-      dateFrom: q.dateFrom ? q.dateFrom.toISOString() : null,
-      dateTo: q.dateTo ? q.dateTo.toISOString() : null,
     });
     allResults = [];
     clearUI();
@@ -474,14 +450,6 @@
     const p = (n) => String(n).padStart(2, '0');
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
       + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
-  }
-  // ISO 字符串 → <input type=date> 需要的 yyyy-MM-dd
-  function toDateInput(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d)) return '';
-    const p = (n) => String(n).padStart(2, '0');
-    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   }
 
   document.addEventListener('DOMContentLoaded', init);
