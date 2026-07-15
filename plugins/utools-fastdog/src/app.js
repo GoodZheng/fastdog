@@ -97,6 +97,12 @@
         }
       });
     }
+    // 恢复自动换行状态
+    if (l.previewWordWrap) {
+      els.optWrap.checked = true;
+      els.previewCode.classList.add('wrap');
+      currentLayout.previewWordWrap = true;
+    }
   }
 
   function applyEnter(enter) {
@@ -117,9 +123,11 @@
     refreshTag(els.tagFileFilter, els.inputFileFilter, '文件: ');
     refreshTag(els.tagExclude, els.inputExclude, '排除: ');
 
-    // 自动换行
+    // 自动换行（状态即时持久化）
     els.optWrap.addEventListener('change', () => {
       els.previewCode.classList.toggle('wrap', els.optWrap.checked);
+      currentLayout.previewWordWrap = els.optWrap.checked;
+      saveLayout();
     });
   }
 
@@ -494,13 +502,16 @@
     });
   }
 
-  // ===== 布局持久化：把 currentLayout 存入 uTools dbStorage =====
-  function saveLayout() {
-    fd.saveLayout({
+  // ===== 布局持久化：把 currentLayout 存入 uTools dbStorage（extra 可合并额外字段）=====
+  function saveLayout(extra) {
+    const data = {
       rowRatio: currentLayout.rowRatio,
       colRatio: currentLayout.colRatio,
       colWidths: currentLayout.colWidths,
-    });
+      previewWordWrap: currentLayout.previewWordWrap,
+    };
+    if (extra) Object.assign(data, extra);
+    fd.saveLayout(data);
   }
 
   // ===== 右键菜单 =====
