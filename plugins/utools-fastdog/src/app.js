@@ -35,6 +35,7 @@
     bindButtons();
     bindSplitters();
     bindDragDrop();
+    initColumnResize();
 
     // uTools 进入事件（preload 派发 fastdog:enter）
     window.addEventListener('fastdog:enter', (e) => {
@@ -309,6 +310,45 @@
         dragging = false;
         document.body.style.cursor = '';
       }
+    });
+  }
+
+  // ===== 表格列宽拖拽（对齐桌面版 DataGrid 可拖列宽）=====
+  function initColumnResize() {
+    const ths = document.querySelectorAll('#file-table th');
+    ths.forEach((th) => {
+      const resizer = document.createElement('div');
+      resizer.className = 'col-resizer';
+      th.appendChild(resizer);
+
+      let dragging = false;
+      let startX = 0;
+      let startW = 0;
+
+      resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragging = true;
+        startX = e.clientX;
+        startW = th.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        // table-layout:fixed 下，设 th 宽度即可生效
+        const newW = Math.max(40, startW + (e.clientX - startX));
+        th.style.width = newW + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (dragging) {
+          dragging = false;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
+      });
     });
   }
 

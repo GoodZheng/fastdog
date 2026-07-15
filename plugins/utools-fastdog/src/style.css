@@ -45,9 +45,9 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 /* 对齐桌面版 Grid RowDefinition 2*:Auto:3* —— 文件列表 40%、下半区 60%。
    min-height:0 让 flex 子项可收缩（否则表格内容会撑高 table-wrap 把下半区压扁）。 */
 .table-wrap { flex: 2; overflow: auto; min-height: 0; }
-#file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-#file-table th { background: #fafafa; color: var(--text-gray); font-weight: 600; font-size: 12px; padding: 7px 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
-#file-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; }
+#file-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+#file-table th { background: #fafafa; color: var(--text-gray); font-weight: 600; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
+#file-table td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #file-table tbody tr { cursor: pointer; }
 #file-table tbody tr:hover { background: var(--accent-bg-hover); }
 #file-table tbody tr.selected { background: var(--accent-bg); }
@@ -57,6 +57,9 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 .match-badge { background: var(--accent); color: #fff; border-radius: 9px; padding: 1px 7px; font-weight: bold; font-size: 12px; }
 .col-path { color: var(--text-gray); text-align: left; }
 .col-mtime { color: var(--text-gray); width: 130px; }
+/* 表头列宽拖拽手柄（贴在表头右边） */
+#file-table th .col-resizer { position: absolute; top: 0; right: 0; width: 5px; height: 100%; cursor: col-resize; user-select: none; z-index: 2; }
+#file-table th .col-resizer:hover { background: var(--accent); }
 
 .splitter-h { height: 3px; background: var(--border); cursor: row-resize; flex-shrink: 0; }
 
