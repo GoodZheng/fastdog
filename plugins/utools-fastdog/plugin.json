@@ -12,7 +12,7 @@
     {
       "code": "fastdog",
       "explain": "全文检索 — 基于 ripgrep 的高速文本搜索",
-      "cmds": ["fd", "fastdog", "搜索", "文本搜索"],
+      "cmds": ["搜索", "全文搜索", "文本搜索", "内容搜索"],
       "main": "index.html"
     },
     {
