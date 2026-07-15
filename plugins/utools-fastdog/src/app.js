@@ -7,6 +7,8 @@
   const H = window.FastDogHighlight;
   let allResults = [];        // 当前搜索结果
   let selectedResult = null;  // 当前选中文件
+  // 文件列表排序状态
+  let sortState = { col: null, desc: false };
   // 当前布局状态（拖拽时更新，mouseup 时持久化）。初始从已恢复的 layout 继承。
   const currentLayout = { rowRatio: null, colRatio: null, colWidths: {} };
 
@@ -35,6 +37,7 @@
     bindSplitters();
     bindDragDrop();
     initColumnResize();
+    bindSort();
 
     // 恢复上次会话（搜索条件）+ 布局（分割比例 + 列宽）
     restoreSession();
@@ -191,6 +194,8 @@
     if (!q.searchText) { setStatus('请输入搜索内容'); return; }
 
     fd.saveLastPath(q.searchPath);
+    sortState = { col: null, desc: false };  // 新搜索重置排序状态
+    updateSortIndicators();
     // 保存完整会话（下次打开恢复）
     fd.saveSession({
       searchText: q.searchText,
@@ -241,6 +246,74 @@
     tr.addEventListener('dblclick', () => fd.openFile(r.filePath));
     tr.addEventListener('contextmenu', (e) => showFileMenu(e, r));
     els.fileTbody.appendChild(tr);
+  }
+
+  // ===== 文件列表排序（对齐桌面版 DataGrid 点击列头排序）=====
+  // th class → 排序字段名
+  const SORT_KEY = { 'col-name': 'fileName', 'col-size': 'fileSize', 'col-match': 'matchCount', 'col-path': 'filePath', 'col-mtime': 'lastModified' };
+
+  function bindSort() {
+    document.querySelectorAll('#file-table th').forEach((th) => {
+      // 找该 th 对应的排序字段（无映射的列不支持排序）
+      const key = SORT_KEY[Object.keys(SORT_KEY).find((c) => th.classList.contains(c))];
+      if (!key) return;
+      th.classList.add('sortable');
+      th.addEventListener('click', () => {
+        if (sortState.col === key) {
+          sortState.desc = !sortState.desc;       // 同列切换升降序
+        } else {
+          sortState.col = key;
+          sortState.desc = false;                  // 新列默认升序
+        }
+        updateSortIndicators();
+        rerenderFileList();
+      });
+    });
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('#file-table th').forEach((th) => {
+      const key = SORT_KEY[Object.keys(SORT_KEY).find((c) => th.classList.contains(c))];
+      // 清除旧指示符
+      th.textContent = th.textContent.replace(/[▲▼]\s*$/, '').trim();
+      if (key && sortState.col === key) {
+        th.textContent = (th.textContent + ' ' + (sortState.desc ? '▼' : '▲'));
+      }
+    });
+  }
+
+  function rerenderFileList() {
+    // 保留选中项引用，重渲染后恢复高亮
+    const selectedPath = selectedResult ? selectedResult.filePath : null;
+    els.fileTbody.innerHTML = '';
+
+    let list = allResults;
+    if (sortState.col) {
+      const key = sortState.col;
+      const desc = sortState.desc;
+      // 拷贝后排序，不破坏原始顺序
+      list = allResults.slice().sort((a, b) => {
+        let va = a[key], vb = b[key];
+        // 日期对象用 valueOf 比较
+        if (va instanceof Date) va = va.getTime();
+        if (vb instanceof Date) vb = vb.getTime();
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return desc ? 1 : -1;
+        if (va > vb) return desc ? -1 : 1;
+        return 0;
+      });
+    }
+
+    let selectedTr = null;
+    list.forEach((r) => {
+      appendFileRow(r);
+      if (r.filePath === selectedPath) {
+        selectedTr = els.fileTbody.lastChild;
+        selectedTr.classList.add('selected');
+      }
+    });
+    if (selectedTr) selectedTr.scrollIntoView({ block: 'nearest' });
   }
 
   function selectResult(r, tr) {
@@ -311,8 +384,10 @@
       const lineHtml = m
         ? H.highlightLine(line, m.matchStart, m.matchEnd)
         : H.escapeHtml(line);
-      // data-line 供滚动定位
-      html += '<div class="pv-line" data-line="' + ln + '">' + lineHtml + '</div>';
+      // 行号（右对齐灰色，对齐桌面版 AvalonEdit ShowLineNumbers）+ data-line 供滚动定位
+      html += '<div class="pv-line" data-line="' + ln + '">'
+        + '<span class="pv-lineno">' + ln + '</span>'
+        + '<span class="pv-content">' + lineHtml + '</span></div>';
     }
     return html;
   }
