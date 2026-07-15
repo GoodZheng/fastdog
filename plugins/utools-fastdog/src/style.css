@@ -35,7 +35,8 @@ html, body { height: 100%; font-family: "Segoe UI", "Microsoft YaHei", sans-seri
 .tag-btn { padding: 3px 8px; border: 1px solid var(--border); border-radius: 3px; background: #fafafa; font-size: 12px; cursor: pointer; }
 .tag-input { padding: 3px 6px; border: 1px solid var(--accent); border-radius: 3px; font-size: 12px; width: 120px; }
 .date-input { padding: 2px 4px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; }
-.spacer { flex: 1; }
+/* 操作按钮组：整体靠右，搜索/取消作为一组不分离（避免取消按钮单独换行）*/
+.action-group { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 .search-btn { background: var(--accent); color: #fff; border: none; border-radius: 3px; padding: 5px 18px; font-size: 13px; cursor: pointer; }
 .cancel-btn { background: #fff; color: var(--text-gray); border: 1px solid var(--border); border-radius: 3px; padding: 5px 14px; font-size: 13px; cursor: pointer; }
 
