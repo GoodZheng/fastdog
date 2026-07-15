@@ -1,0 +1,10 @@
+{
+  "name": "utools-fastdog",
+  "version": "0.1.0",
+  "description": "FastDog — 基于 ripgrep 的文本搜索（uTools 插件）",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

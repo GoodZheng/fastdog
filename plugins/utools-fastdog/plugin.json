@@ -1,0 +1,14 @@
+{
+  "main": "index.html",
+  "preload": "preload.js",
+  "logo": "logo.png",
+  "platform": ["win32", "darwin", "linux"],
+  "features": [
+    {
+      "code": "fastdog",
+      "explain": "FastDog — 基于 ripgrep 的文本搜索",
+      "cmds": ["fd", "fastdog", "搜索", "文本搜索"],
+      "main": "index.html"
+    }
+  ]
+}
