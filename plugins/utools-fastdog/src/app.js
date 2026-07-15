@@ -282,11 +282,13 @@
   function updateSortIndicators() {
     document.querySelectorAll('#file-table th').forEach((th) => {
       const key = SORT_KEY[Object.keys(SORT_KEY).find((c) => th.classList.contains(c))];
-      // 清除旧指示符
-      th.textContent = th.textContent.replace(/[▲▼]\s*$/, '').trim();
-      if (key && sortState.col === key) {
-        th.textContent = (th.textContent + ' ' + (sortState.desc ? '▼' : '▲'));
-      }
+      const textEl = th.querySelector('.th-text');
+      if (!textEl) return;
+      // 清除旧指示符（只改 .th-text 文本，保留 resizer 手柄等其他子节点）
+      const base = textEl.textContent.replace(/[▲▼]\s*$/, '').trim();
+      textEl.textContent = (key && sortState.col === key)
+        ? (base + ' ' + (sortState.desc ? '▼' : '▲'))
+        : base;
     });
   }
 
