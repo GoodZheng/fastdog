@@ -9,6 +9,18 @@
       "explain": "FastDog — 基于 ripgrep 的文本搜索",
       "cmds": ["fd", "fastdog", "搜索", "文本搜索"],
       "main": "index.html"
+    },
+    {
+      "code": "fastdog-search-text",
+      "explain": "用 FastDog 搜索该文本",
+      "cmds": [{ "type": "over", "label": "FastDog 搜索选中内容", "minLength": 1 }],
+      "main": "index.html"
+    },
+    {
+      "code": "fastdog-search-dir",
+      "explain": "在此文件夹中搜索",
+      "cmds": [{ "type": "files", "fileType": "directory", "name": "文件夹" }],
+      "main": "index.html"
     }
   ]
 }
