@@ -1,60 +1,156 @@
-// 纯 JS 搜索引擎，替代 ripgrepBridge（去二进制以通过 uTools 审核）。
-// 接口契约与 RipgrepBridge 一致：search(query, handlers) / countFiles(query) / cancel()。
-// 产出的 ev 对象严格对齐 jsonParser.RgEvent schema，matchStart/matchEnd 为 UTF-8 字节偏移
-// （用 TextEncoder 反算字符→字节，上层 filePreview/highlight 零改动）。
+// 纯 JS 搜索引擎（Worker 多线程版），替代 ripgrepBridge（去二进制以通过 uTools 审核）。
+// 接口契约：search(query, handlers) / countFiles(query) / cancel()。
+// 主线程负责目录遍历（gitignore/excludeDirs/fileFilter 过滤），文件列表分发给多个 Worker 并行搜索。
+// Worker 回传 {filePath, matches[]}，主线程转成 match 事件推给 searchService。
+//
+// matchStart/matchEnd 为 UTF-8 字节偏移（Worker 内用 TextEncoder 反算，上层零改动）。
+// 若 Worker 不可用（uTools 环境限制），fallback 到单线程 searchFileSync。
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createGitignoreFilter } = require('./gitignoreFilter');
 const { normalizeFilePattern } = require('./argumentBuilder');
 
+// 探测 worker_threads 是否可用（uTools Electron 渲染进程可能限制）
+let Worker = null;
+try { Worker = require('node:worker_threads').Worker; } catch { Worker = null; }
+
 class JsSearchEngine {
   constructor() {
     this._cancelled = false;
+    this._workers = [];
   }
 
-  /**
-   * 流式搜索。直接消费 query（不再走 rg 命令行参数）。
-   * @param {object} q SearchQuery
-   * @param {{onEvent:(ev)=>void, onDone?:()=>void, onError?:(err)=>void}} handlers
-   */
   async search(q, handlers) {
     this._cancelled = false;
     const startTime = Date.now();
     let totalMatches = 0;
 
     try {
-      // 构建正则
       const regex = buildRegex(q);
       const fileFilterGlobs = parseFileFilter(q.fileFilter);
       const gitFilter = createGitignoreFilter(q.searchPath, splitDirs(q.excludeDirs));
-
-      // 遍历所有文件
       const files = await walkDir(q.searchPath, q.searchPath, fileFilterGlobs, gitFilter, this);
 
-      // 逐文件搜索
-      for (const filePath of files) {
-        if (this._cancelled) break;
-        totalMatches += await searchFile(filePath, regex, handlers, this);
+      if (this._cancelled) { handlers.onDone && handlers.onDone(); return; }
+
+      if (Worker && files.length > 50) {
+        // 多线程：文件数足够多才值得用 Worker（否则 worker 启动开销 > 收益）
+        totalMatches = await this._searchWithWorkers(q, regex, files, handlers);
+      } else {
+        // 单线程 fallback
+        totalMatches = this._searchSync(regex, files, handlers);
       }
 
-      // 推送 summary（取消时不推送，避免误导 UI 显示"完成"统计）
       if (!this._cancelled) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
         handlers.onEvent({ type: 'summary', totalMatches, matchedLines: 0, elapsed });
       }
-      // 无论是否取消都触发 onDone（搜索结束，上层需要知道流程终止，否则 UI 卡在"搜索中"）
       handlers.onDone && handlers.onDone();
     } catch (err) {
       handlers.onError && handlers.onError(err);
     }
   }
 
-  /**
-   * 统计待搜索文件数。
-   * @param {object} q SearchQuery
-   * @returns {Promise<number>}
-   */
+  /** 多线程搜索：把 files 均分给 N 个 Worker 并行。 */
+  _searchWithWorkers(q, regex, files, handlers) {
+    return new Promise((resolve) => {
+      const cpuCount = require('node:os').cpus().length;
+      const workerCount = Math.min(Math.max(2, cpuCount - 2), 8, files.length);
+      const batchSize = Math.ceil(files.length / workerCount);
+      const workerPath = path.join(__dirname, 'searchWorker.js');
+
+      let totalMatches = 0;
+      let completed = 0;
+      let active = 0;
+      const self = this;
+
+      // 分批分发：动态分配（一个 worker 做完一批再领下一批），避免长尾
+      let nextIdx = 0;
+      const BATCH = 200; // 每个 worker 每次领 200 个文件
+
+      function dispatch(worker) {
+        if (self._cancelled) { worker.postMessage({ type: 'exit' }); return; }
+        const batch = [];
+        while (nextIdx < files.length && batch.length < BATCH) {
+          batch.push(files[nextIdx++]);
+        }
+        if (batch.length === 0) {
+          // 没活干了，让这个 worker 退出
+          worker.postMessage({ type: 'exit' });
+          return;
+        }
+        active++;
+        worker.postMessage({ type: 'search', files: batch });
+      }
+
+      for (let i = 0; i < workerCount; i++) {
+        const w = new Worker(workerPath, {
+          workerData: { regexSource: regex.source, regexFlags: regex.flags },
+        });
+        self._workers.push(w);
+
+        w.on('message', (msg) => {
+          if (msg.type === 'batch') {
+            // 把每个文件的匹配转成 match 事件推给 searchService
+            for (const fr of msg.results) {
+              handlers.onEvent({ type: 'fileBegin', filePath: fr.filePath });
+              for (const m of fr.matches) {
+                handlers.onEvent({
+                  type: 'match',
+                  filePath: fr.filePath,
+                  lineNumber: m.lineNumber,
+                  lineText: m.lineText,
+                  matchStart: m.matchStart,
+                  matchEnd: m.matchEnd,
+                });
+                totalMatches++;
+              }
+              handlers.onEvent({ type: 'fileEnd', filePath: fr.filePath });
+            }
+            active--;
+            // 继续领下一批
+            if (!self._cancelled && nextIdx < files.length) {
+              dispatch(w);
+            } else {
+              w.postMessage({ type: 'exit' });
+            }
+          }
+        });
+
+        w.on('error', (err) => {
+          active--;
+          // worker 出错不影响其他，继续
+          if (!self._cancelled && nextIdx < files.length) dispatch(w);
+          else { w.postMessage({ type: 'exit' }); }
+        });
+
+        dispatch(w);
+      }
+
+      // 检查所有 worker 是否完成
+      const checkDone = setInterval(() => {
+        if (self._cancelled || (nextIdx >= files.length && active === 0)) {
+          clearInterval(checkDone);
+          // 确保所有 worker 退出
+          self._workers.forEach((w) => { try { w.postMessage({ type: 'exit' }); } catch {} });
+          self._workers = [];
+          resolve(totalMatches);
+        }
+      }, 50);
+    });
+  }
+
+  /** 单线程 fallback（Worker 不可用时）。 */
+  _searchSync(regex, files, handlers) {
+    let totalMatches = 0;
+    for (const filePath of files) {
+      if (this._cancelled) break;
+      totalMatches += searchFileSync(filePath, regex, handlers, this);
+    }
+    return totalMatches;
+  }
+
   async countFiles(q) {
     this._cancelled = false;
     const fileFilterGlobs = parseFileFilter(q.fileFilter);
@@ -65,6 +161,8 @@ class JsSearchEngine {
 
   cancel() {
     this._cancelled = true;
+    this._workers.forEach((w) => { try { w.terminate(); } catch {} });
+    this._workers = [];
   }
 }
 
@@ -82,13 +180,9 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** 解析 fileFilter（"*.cs;*.txt"）为 glob 数组。 */
 function parseFileFilter(fileFilter) {
   if (!fileFilter || !fileFilter.trim()) return null;
-  return fileFilter.split(';')
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map(normalizeFilePattern);
+  return fileFilter.split(';').map((p) => p.trim()).filter(Boolean).map(normalizeFilePattern);
 }
 
 function splitDirs(excludeDirs) {
@@ -96,15 +190,13 @@ function splitDirs(excludeDirs) {
   return excludeDirs.split(';').map((d) => d.trim()).filter(Boolean);
 }
 
-/** 简单 glob 匹配（支持 * 和 ?，用于文件名过滤）。 */
 function matchGlob(filename, glob) {
-  // 把 glob 转成正则（仅 * 和 ? 视为通配，其余转义）
   const re = '^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$';
   return new RegExp(re, 'i').test(filename);
 }
 
 function matchAnyGlob(filename, globs) {
-  if (!globs) return true; // 无过滤则全部通过
+  if (!globs) return true;
   return globs.some((g) => matchGlob(filename, g));
 }
 
@@ -117,7 +209,7 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
   } catch {
-    return result; // 无权限等，跳过
+    return result;
   }
 
   for (const entry of entries) {
@@ -125,7 +217,6 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
     const fullPath = path.join(dir, entry.name);
     const relPath = path.relative(rootPath, fullPath).replace(/\\/g, '/');
 
-    // gitignore / excludeDirs 判定
     if (gitFilter.shouldIgnore(relPath)) continue;
 
     if (entry.isDirectory()) {
@@ -140,79 +231,55 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
   return result;
 }
 
-/** 搜索单个文件，返回匹配数。流式推送 match/fileBegin/fileEnd 事件。 */
-async function searchFile(filePath, regex, handlers, engine) {
-  if (engine._cancelled) return 0;
-
-  // 先以 Buffer 读取，做二进制检测（对齐 ripgrep：含 NUL 字节视为二进制，整个文件跳过）
+/** 单线程搜索单文件（fallback 用）。 */
+function searchFileSync(filePath, regex, handlers, engine) {
+  const fsSync = require('node:fs');
   let buf;
   try {
-    buf = await fs.readFile(filePath);
+    buf = fsSync.readFileSync(filePath);
   } catch {
-    return 0; // 无权限等，跳过
+    return 0;
   }
 
-  // 二进制检测：扫描前 8KB 是否含 NUL 字节（ripgrep/file 命令的经典启发式）
-  if (isBinaryBuffer(buf)) return 0;
+  const scanLen = Math.min(buf.length, 8192);
+  for (let i = 0; i < scanLen; i++) {
+    if (buf[i] === 0) return 0;
+  }
 
-  const content = buf.toString('utf8');
   handlers.onEvent({ type: 'fileBegin', filePath });
 
   let matchCount = 0;
+  const content = buf.toString('utf8');
   const lines = content.split('\n');
-  // 注意：split('\n') 后行号从 1 开始；最后一行若因末尾\n产生空串则不算
+  const encoder = new TextEncoder();
+
   for (let i = 0; i < lines.length; i++) {
     if (engine._cancelled) break;
     const line = lines[i];
     const lineNumber = i + 1;
-    // 跳过末尾空行（文件以 \n 结尾时 split 产生的最后一个空串）
     if (i === lines.length - 1 && line === '') break;
 
     regex.lastIndex = 0;
     let m;
     while ((m = regex.exec(line)) !== null) {
       if (engine._cancelled) break;
-      const charStart = m.index;
-      const charEnd = m.index + m[0].length;
-      // 字符偏移 → UTF-8 字节偏移（上层契约要求字节偏移）
-      const byteStart = charToByteOffset(line, charStart);
-      const byteEnd = charToByteOffset(line, charEnd);
+      const byteStart = encoder.encode(line.slice(0, m.index)).length;
+      const byteEnd = byteStart + encoder.encode(line.slice(m.index, m.index + m[0].length)).length;
       handlers.onEvent({
         type: 'match',
         filePath,
         lineNumber,
-        lineText: line + '\n', // 对齐 rg：lines.text 含结尾换行
+        lineText: line + '\n',
         matchStart: byteStart,
         matchEnd: byteEnd,
       });
       matchCount++;
-      // 防止零宽匹配死循环（如正则匹配空串）
       if (m[0] === '') regex.lastIndex++;
     }
   }
 
   handlers.onEvent({ type: 'fileEnd', filePath });
   return matchCount;
-}
-
-/**
- * 二进制检测：扫描前 8KB 是否含 NUL 字节（0x00）。
- * 对齐 ripgrep 的启发式——文本文件几乎不会有 NUL 字节，二进制文件则常见。
- * UTF-8/GBK 等正常编码的文本不会产生 0x00 字节。
- */
-function isBinaryBuffer(buf) {
-  const scanLen = Math.min(buf.length, 8192);
-  for (let i = 0; i < scanLen; i++) {
-    if (buf[i] === 0) return true;
-  }
-  return false;
-}
-
-/** 字符偏移 → UTF-8 字节偏移。 */
-function charToByteOffset(text, charOffset) {
-  if (charOffset <= 0) return 0;
-  const prefix = text.slice(0, charOffset);
-  return new TextEncoder().encode(prefix).length;
 }
 
 module.exports = { JsSearchEngine };

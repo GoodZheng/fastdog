@@ -172,9 +172,9 @@ test('search: 纯文本文件（无 NUL 字节）正常搜索', async () => {
 });
 
 test('cancel: 中止搜索', async () => {
-  // 建很多文件
+  // 建足够多文件（超过单批 BATCH，让 cancel 能在批次间生效）
   const files = {};
-  for (let i = 0; i < 200; i++) files['f' + i + '.txt'] = 'target\n';
+  for (let i = 0; i < 1000; i++) files['f' + i + '.txt'] = 'target\n';
   const dir = setupTmpDir(files);
   const engine = new JsSearchEngine();
   let matchCount = 0;
@@ -193,6 +193,7 @@ test('cancel: 中止搜索', async () => {
     );
   });
   await promise;
-  assert.ok(matchCount < 200, '取消后不应继续匹配所有 200 个文件');
+  // cancel 后当前 Worker 批次会跑完，但不再领新批，故 matchCount 远小于 1000
+  assert.ok(matchCount < 800, '取消后不应继续匹配大部分文件，实际匹配 ' + matchCount);
   fs.rmSync(dir, { recursive: true });
 });
