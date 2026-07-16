@@ -3,6 +3,30 @@
 本插件版本号与变更记录独立维护，不纳入主仓库 FastDog 的 CHANGELOG。
 格式遵循 Keep a Changelog + 语义化版本。
 
+## [1.1.0] - 未发布
+
+### 新增
+- child_process.fork 多进程并行搜索：fork 独立 Node 子进程真并行，实测 5.5 万文件 6s→3.2s（约 2 倍）
+  - 子进程脚本 `lib/searchChild.js`，IPC 通信（process.send/on('message')），动态分发 500 文件/批
+  - 进程数 = min(4, CPU/4)，cancel 时 SIGTERM 杀子进程
+  - fork 运行时不可用时自动降级串行（forkRuntimeOk 标志）
+
+### 性能优化
+- matchStart/matchEnd 改为字符偏移（直接用 RegExp m.index），废除 ripgrep 时代遗留的字节偏移契约
+  - 消除每个匹配两次 TextEncoder.encode() 的 O(匹配数×行长) 双重转换
+  - 上层 highlight.js/filePreview/preload 直接 slice，删 byteToChar/byteToCharOffset 调用
+- 遍历阶段按扩展名跳过二进制文件（.dll/.png/.pdb 等不读内容），对齐 ripgrep
+- search 内遍历后通过 scanned 事件回传文件数，删除 countFiles 预遍历（目录树只遍历一次）
+- 新增 matcher 模块统一匹配器工厂
+
+### 废弃
+- 删除 searchWorker.js（worker_threads 版），uTools 渲染进程不支持创建 Worker
+- 删除异步 IO 并发池（fs.promises.readFile 并发16），实测 uTools/Electron 事件循环重，微任务调度开销超过 IO 并行收益（8-9s 反而比串行 6s 慢）
+- 回退 indexOf 纯文本快车道，实测中文场景比 RegExp 慢 2 倍（toLowerCase 对中文是纯开销）
+
+### 保留
+- 全部 UI 与功能不变（三层布局、搜索条件、预览高亮、Ctrl+F、排序、列宽、会话恢复、右键菜单等）
+
 ## [1.0.0] - 2026-07-16
 
 ### 变更

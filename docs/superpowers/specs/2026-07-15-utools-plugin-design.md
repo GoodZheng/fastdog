@@ -6,17 +6,23 @@
 >
 > **实际发布版已废弃该方案**，原因：uTools 商店审核**禁止外部可执行文件**（包含捆绑的原生二进制），初版因此被拒。
 >
-> 当前实现改为**纯 JS 搜索引擎**（`fs/promises` 递归遍历 + `RegExp` 逐行匹配），详见：
-> - 实现计划：`docs/superpowers/plans/2026-07-16-pure-js-search.md`
-> - 变更记录：`plugins/utools-fastdog/CHANGELOG.md`（v1.0.0）
+> 搜索引擎经历了多次演进（详见 `plugins/utools-fastdog/CHANGELOG.md`）：
+> 1. **v1.0.0 纯 JS 单线程**：`fs/promises` 递归遍历 + `RegExp` 逐行匹配（替代 ripgrep）
+> 2. **v1.1.0 child_process.fork 多进程并行**：fork 独立 Node 子进程真并行，5.5 万文件 6s→3.2s
 >
-> 下方关于 `bin/rg-*`、`ripgrepBridge.js`、`platformRg.js`、`child_process.spawn` 的描述均已**不再适用**，仅作历史决策记录保留。当前搜索引擎为 `lib/jsSearchEngine.js`（含 Worker 多线程尝试 + 单线程 fallback + setImmediate 边搜边显示）。
+> 探索过但废弃的方案（记录决策过程）：
+> - worker_threads：uTools 渲染进程不支持创建 Worker（"V8 platform does not support"）
+> - fs.promises.readFile 异步并发池：纯 Node 快 30%，但 uTools/Electron 事件循环重，微任务调度开销超过 IO 并行收益（8-9s 反而更慢）
+> - indexOf 纯文本快车道：英文持平，中文因 toLowerCase 纯开销慢 2 倍
 >
+> ⚠️ **fork 方案的审核风险**：fork 产生独立 node 子进程（任务管理器可见），可能被 uTools 审核判为"外部可执行"。已做降级保护（fork 失败自动回串行），但审核是人工判断。
+>
+> 下方关于 `bin/rg-*`、`ripgrepBridge.js`、`platformRg.js` 的描述已不再适用，仅作历史决策记录保留。
 > 本文档其余部分（UI 三层布局、功能需求、移植映射中除搜索引擎外的模块）仍然有效。
 
 ## 概述
 
-为 FastDog 开发 uTools 插件，让用户在 uTools 平台内完成与桌面版等价的文本搜索体验。插件复用 FastDog 的核心搜索逻辑（ripgrep 桥接、参数构建、JSON 解析、结果聚合、文件预览），用 JavaScript 重写实现层，用 HTML/CSS/JS 还原桌面版布局，捆绑 ripgrep 二进制实现跨平台运行。
+为 FastDog 开发 uTools 插件，让用户在 uTools 平台内完成与桌面版等价的文本搜索体验。插件用 JavaScript 重写 FastDog 的核心搜索逻辑（参数构建、结果聚合、文件预览），用 HTML/CSS/JS 还原桌面版布局，搜索引擎采用纯 JS + child_process.fork 多进程并行。
 
 **范围边界**：对齐 FastDog 除「搜索历史」外的全部功能；UI 布局尽量还原桌面版三层结构（搜索条件区 → 文件列表 → 下半区左匹配行 + 右预览）。
 

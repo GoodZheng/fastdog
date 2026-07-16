@@ -26,7 +26,7 @@ tools/
   rg.exe           ripgrep 可执行文件
 plugins/
   utools-fastdog/  uTools 插件子项目（独立版本号与 CHANGELOG，纯 JS 搜索引擎，见 plugins/utools-fastdog/CHANGELOG.md）
-    lib/           jsSearchEngine(纯JS搜索引擎), gitignoreFilter, argumentBuilder, jsonParser, searchService, filePreview
+    lib/           jsSearchEngine(搜索引擎,child_process.fork多进程并行+串行fallback), searchChild(fork子进程脚本), matcher(匹配器工厂), gitignoreFilter, argumentBuilder, jsonParser, searchService, filePreview
     src/           app.js, style.css, highlight.js, previewFind.js (Web UI)
     preload.js     uTools 装配层（暴露 window.fastdog + onPluginEnter）
     plugin.json    uTools 插件配置
