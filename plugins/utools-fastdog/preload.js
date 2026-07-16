@@ -15,10 +15,8 @@ const fastdog = {
    * @param {{onResult:(r)=>void, onStats:(s)=>void, onDone:()=>void, onError:(e)=>void}} handlers
    */
   search(query, handlers) {
-    // 先统计待搜索文件数（纯 JS 引擎直接吃 query）
-    bridge.countFiles(query).then((totalFiles) => {
-      doSearch(query, totalFiles, handlers);
-    }).catch((e) => handlers.onError && handlers.onError(e));
+    // 直接搜索（不再预调 countFiles —— search 内部遍历后通过 scanned 事件回传文件数，避免目录树二次遍历）
+    doSearch(query, handlers);
   },
 
   cancel() {
@@ -96,15 +94,24 @@ const fastdog = {
 
 window.fastdog = fastdog;
 
-function doSearch(query, totalFiles, handlers) {
+function doSearch(query, handlers) {
   currentSession = createSearchSession(query.searchPath, query, { onResult: handlers.onResult });
 
   bridge.search(query, {
     onEvent: (ev) => {
       currentSession.handleEvent(ev);
-      if (ev.type === 'summary') {
+      // 遍历完成：尽早更新状态栏「待搜 N 文件」
+      if (ev.type === 'scanned') {
         handlers.onStats && handlers.onStats({
-          searchedFiles: totalFiles,
+          searchedFiles: ev.searchedFiles,
+          foundFiles: 0,
+          elapsed: '',
+          totalMatches: 0,
+        });
+      } else if (ev.type === 'summary') {
+        // 搜索完成：最终统计
+        handlers.onStats && handlers.onStats({
+          searchedFiles: ev.searchedFiles,
           foundFiles: currentSession.getFoundCount(),
           elapsed: ev.elapsed,
           totalMatches: ev.totalMatches,

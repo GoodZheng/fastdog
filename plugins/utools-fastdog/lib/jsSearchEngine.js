@@ -44,6 +44,10 @@ class JsSearchEngine {
 
       if (this._cancelled) { handlers.onDone && handlers.onDone(); return; }
 
+      // 遍历完成，立即推送 scanned 事件（带文件数），让状态栏尽早显示「待搜 N 文件」
+      // 避免 countFiles 预遍历导致的目录树二次遍历（纯 IO，5万文件翻倍）
+      handlers.onEvent({ type: 'scanned', searchedFiles: files.length });
+
       if (workerRuntimeOk && WorkerCtor && files.length > 50) {
         try {
           // 多线程：文件数足够多才值得用 Worker（否则 worker 启动开销 > 收益）
@@ -61,7 +65,7 @@ class JsSearchEngine {
 
       if (!this._cancelled) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
-        handlers.onEvent({ type: 'summary', totalMatches, matchedLines: 0, elapsed });
+        handlers.onEvent({ type: 'summary', totalMatches, matchedLines: 0, elapsed, searchedFiles: files.length });
       }
       handlers.onDone && handlers.onDone();
     } catch (err) {

@@ -224,9 +224,15 @@
       onStats: (s) => {
         flushRows(); // 确保搜索结束时所有待渲染行已插入
         els.statFiles.textContent = s.searchedFiles;
-        els.statMatches.textContent = s.totalMatches;
-        els.statElapsed.textContent = s.elapsed;
-        setStatus('完成：找到 ' + s.foundFiles + ' 个文件，' + s.totalMatches + ' 处匹配');
+        if (s.elapsed === '') {
+          // scanned 事件（遍历完成，搜索进行中）：只更新文件数 + 状态文本，不清零匹配/耗时
+          setStatus('正在搜索 ' + s.searchedFiles + ' 个文件...');
+        } else {
+          // summary 事件（搜索完成）：完整统计
+          els.statMatches.textContent = s.totalMatches;
+          els.statElapsed.textContent = s.elapsed;
+          setStatus('完成：找到 ' + s.foundFiles + ' 个文件，' + s.totalMatches + ' 处匹配');
+        }
       },
       onDone: () => { if (els.statusText.textContent === '搜索中...') setStatus('完成'); },
       onError: (err) => setStatus('错误：' + err.message),
