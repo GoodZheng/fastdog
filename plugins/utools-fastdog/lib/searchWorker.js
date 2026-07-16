@@ -1,16 +1,14 @@
 // Worker 线程脚本：接收一批文件路径 + 搜索参数，并行搜索后回传每个文件的匹配结果。
 // 主线程（jsSearchEngine.js）负责目录遍历，把文件列表分发给多个 Worker。
 //
-// 注意：Worker 内 require 的模块路径相对于本文件。仅用 Node 内置模块 + 纯 JS 依赖（ignore/argumentBuilder）。
+// 注意：Worker 内 require 的模块路径相对于本文件。matcher 自带 indexOf 快车道。
 
 const { workerData, parentPort } = require('node:worker_threads');
 const fs = require('node:fs');
-const path = require('node:path');
+const { createMatcher } = require('./matcher');
 
-// workerData 在线程启动时传入：{ regexSource, regexFlags, wholeWord, isPlainText }
-// 收到消息 { type: 'search', files: [...] } 时搜索这批文件，回传每个文件的匹配
-const { regexSource, regexFlags } = workerData;
-const regex = new RegExp(regexSource, regexFlags);
+// workerData 传入搜索参数，用 matcher 工厂创建匹配器（纯文本走 indexOf，正则走 RegExp）
+const matcher = createMatcher(workerData);
 
 parentPort.on('message', (msg) => {
   if (msg.type === 'search') {
@@ -43,28 +41,20 @@ function searchFile(filePath) {
   const content = buf.toString('utf8');
   const matches = [];
   const lines = content.split('\n');
-  const encoder = new TextEncoder();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lineNumber = i + 1;
     if (i === lines.length - 1 && line === '') break;
 
-    regex.lastIndex = 0;
-    let m;
-    while ((m = regex.exec(line)) !== null) {
-      const charStart = m.index;
-      const charEnd = m.index + m[0].length;
-      // 字符偏移 → UTF-8 字节偏移（复用同一 encoder，减少分配）
-      const byteStart = encoder.encode(line.slice(0, charStart)).length;
-      const byteEnd = byteStart + encoder.encode(line.slice(charStart, charEnd)).length;
+    const hits = matcher.findAll(line);
+    for (let h = 0; h < hits.length; h++) {
       matches.push({
         lineNumber,
         lineText: line + '\n',
-        matchStart: byteStart,
-        matchEnd: byteEnd,
+        matchStart: hits[h].start,
+        matchEnd: hits[h].end,
       });
-      if (m[0] === '') regex.lastIndex++;
     }
   }
 

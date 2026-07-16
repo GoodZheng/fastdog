@@ -8,8 +8,8 @@
  * @property {string} filePath
  * @property {number} lineNumber
  * @property {string} lineText
- * @property {number} matchStart  UTF-8 字节偏移
- * @property {number} matchEnd    UTF-8 字节偏移
+ * @property {number} matchStart  偏移（rg 时代为字节偏移；纯 JS 引擎为字符偏移）
+ * @property {number} matchEnd    偏移
  * @property {number} totalMatches
  * @property {number} matchedLines
  * @property {string} elapsed

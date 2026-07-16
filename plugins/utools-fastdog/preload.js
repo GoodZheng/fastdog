@@ -3,7 +3,7 @@
 
 const { JsSearchEngine } = require('./lib/jsSearchEngine');
 const { createSearchSession } = require('./lib/searchService');
-const { loadFileContent, byteToCharOffset } = require('./lib/filePreview');
+const { loadFileContent } = require('./lib/filePreview');
 
 const bridge = new JsSearchEngine();
 let currentSession = null;
@@ -28,6 +28,7 @@ const fastdog = {
   previewFile(filePath, matches) {
     const info = loadFileContent(filePath);
     // 计算每个匹配行内偏移→全局偏移（供 UI 滚动定位 + 高亮）
+    // matchStart/matchEnd 已是字符偏移；lineLengths 也是字符长度，直接相加
     if (info.content && matches && matches.length) {
       for (const m of matches) {
         const lineIndex = m.lineNumber - 1;
@@ -35,8 +36,8 @@ const fastdog = {
         for (let i = 0; i < lineIndex && i < info.lineLengths.length; i++) {
           offset += info.lineLengths[i];
         }
-        m.globalMatchStart = offset + byteToCharOffset(m.lineText, m.matchStart);
-        m.globalMatchEnd = offset + byteToCharOffset(m.lineText, m.matchEnd);
+        m.globalMatchStart = offset + m.matchStart;
+        m.globalMatchEnd = offset + m.matchEnd;
       }
     }
     return { info, matches };

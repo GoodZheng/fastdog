@@ -3,12 +3,14 @@
 // 主线程负责目录遍历（gitignore/excludeDirs/fileFilter 过滤），文件列表分发给多个 Worker 并行搜索。
 // Worker 回传 {filePath, matches[]}，主线程转成 match 事件推给 searchService。
 //
-// matchStart/matchEnd 为 UTF-8 字节偏移（Worker 内用 TextEncoder 反算，上层零改动）。
+// matchStart/matchEnd 为字符偏移（直接用 RegExp 的 m.index），上层 highlight/filePreview 直接 slice。
+// 已废除 ripgrep 时代的字节偏移契约（纯 JS 引擎无 rg，无需字节↔字符转换）。
 // 若 Worker 不可用（uTools 环境限制），fallback 到单线程 searchFileSync。
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createGitignoreFilter } = require('./gitignoreFilter');
+const { createMatcher } = require('./matcher');
 const { normalizeFilePattern } = require('./argumentBuilder');
 // 复用 filePreview 的二进制扩展名集合，在遍历阶段就跳过（不读内容、不搜索），
 // 对齐 ripgrep 的行为。.NET 项目含大量 .dll/.pdb/.png，这一步能砍掉近半 IO。
@@ -37,7 +39,7 @@ class JsSearchEngine {
     let totalMatches = 0;
 
     try {
-      const regex = buildRegex(q);
+      const matcher = createMatcher(q);
       const fileFilterGlobs = parseFileFilter(q.fileFilter);
       const gitFilter = createGitignoreFilter(q.searchPath, splitDirs(q.excludeDirs));
       const files = await walkDir(q.searchPath, q.searchPath, fileFilterGlobs, gitFilter, this);
@@ -51,16 +53,16 @@ class JsSearchEngine {
       if (workerRuntimeOk && WorkerCtor && files.length > 50) {
         try {
           // 多线程：文件数足够多才值得用 Worker（否则 worker 启动开销 > 收益）
-          totalMatches = await this._searchWithWorkers(q, regex, files, handlers);
+          totalMatches = await this._searchWithWorkers(q, files, handlers);
         } catch (err) {
           // 运行时不支持 Worker（如 uTools Electron 抛 "does not support creating Workers"）
           // 永久降级为单线程，避免后续每次都尝试失败
           workerRuntimeOk = false;
-          totalMatches = await this._searchSync(regex, files, handlers);
+          totalMatches = await this._searchSync(matcher, files, handlers);
         }
       } else {
         // 单线程 fallback（Worker 不可用或文件少）
-        totalMatches = await this._searchSync(regex, files, handlers);
+        totalMatches = await this._searchSync(matcher, files, handlers);
       }
 
       if (!this._cancelled) {
@@ -74,11 +76,10 @@ class JsSearchEngine {
   }
 
   /** 多线程搜索：把 files 均分给 N 个 Worker 并行。 */
-  _searchWithWorkers(q, regex, files, handlers) {
+  _searchWithWorkers(q, files, handlers) {
     return new Promise((resolve) => {
       const cpuCount = require('node:os').cpus().length;
       const workerCount = Math.min(Math.max(2, cpuCount - 2), 8, files.length);
-      const batchSize = Math.ceil(files.length / workerCount);
       const workerPath = path.join(__dirname, 'searchWorker.js');
 
       let totalMatches = 0;
@@ -107,7 +108,10 @@ class JsSearchEngine {
 
       for (let i = 0; i < workerCount; i++) {
         const w = new WorkerCtor(workerPath, {
-          workerData: { regexSource: regex.source, regexFlags: regex.flags },
+          workerData: {
+            searchText: q.searchText, isRegex: q.isRegex,
+            caseSensitive: q.caseSensitive, wholeWord: q.wholeWord,
+          },
         });
         self._workers.push(w);
 
@@ -164,7 +168,7 @@ class JsSearchEngine {
 
   /** 单线程 fallback（Worker 不可用时）。async + 定期让出事件循环，使 UI 能边搜边渲染。
    *  让出用 setImmediate（比 setTimeout(0) 延迟低一个数量级），频率不能太高否则调度开销压垮搜索。 */
-  async _searchSync(regex, files, handlers) {
+  async _searchSync(matcher, files, handlers) {
     let totalMatches = 0;
     // 每 500 个文件让出一次：5.5 万文件约让出 110 次，既能让 UI 周期性刷新，又不会因调度拖慢搜索
     const YIELD_EVERY = 500;
@@ -172,7 +176,7 @@ class JsSearchEngine {
     const yieldLoop = () => new Promise((r) => setImmediate(r));
     for (const filePath of files) {
       if (this._cancelled) break;
-      totalMatches += searchFileSync(filePath, regex, handlers, this);
+      totalMatches += searchFileSync(filePath, matcher, handlers, this);
       sinceYield++;
       if (sinceYield >= YIELD_EVERY) {
         sinceYield = 0;
@@ -195,20 +199,6 @@ class JsSearchEngine {
     this._workers.forEach((w) => { try { w.terminate(); } catch {} });
     this._workers = [];
   }
-}
-
-/** 构建 RegExp。纯文本模式转义特殊字符；全词加 \b；大小写敏感控制。 */
-function buildRegex(q) {
-  let pattern = q.searchText;
-  let flags = 'g';
-  if (!q.caseSensitive) flags += 'i';
-  if (!q.isRegex) pattern = escapeRegex(pattern);
-  if (q.wholeWord) pattern = '\\b' + pattern + '\\b';
-  return new RegExp(pattern, flags);
-}
-
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function parseFileFilter(fileFilter) {
@@ -264,8 +254,8 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
   return result;
 }
 
-/** 单线程搜索单文件（fallback 用）。 */
-function searchFileSync(filePath, regex, handlers, engine) {
+/** 单线程搜索单文件（fallback 用）。matcher 提供 findAll(line) 返回 [{start,end}]。 */
+function searchFileSync(filePath, matcher, handlers, engine) {
   const fsSync = require('node:fs');
   let buf;
   try {
@@ -284,7 +274,6 @@ function searchFileSync(filePath, regex, handlers, engine) {
   let matchCount = 0;
   const content = buf.toString('utf8');
   const lines = content.split('\n');
-  const encoder = new TextEncoder();
 
   for (let i = 0; i < lines.length; i++) {
     if (engine._cancelled) break;
@@ -292,22 +281,18 @@ function searchFileSync(filePath, regex, handlers, engine) {
     const lineNumber = i + 1;
     if (i === lines.length - 1 && line === '') break;
 
-    regex.lastIndex = 0;
-    let m;
-    while ((m = regex.exec(line)) !== null) {
+    const hits = matcher.findAll(line);
+    for (let h = 0; h < hits.length; h++) {
       if (engine._cancelled) break;
-      const byteStart = encoder.encode(line.slice(0, m.index)).length;
-      const byteEnd = byteStart + encoder.encode(line.slice(m.index, m.index + m[0].length)).length;
       handlers.onEvent({
         type: 'match',
         filePath,
         lineNumber,
         lineText: line + '\n',
-        matchStart: byteStart,
-        matchEnd: byteEnd,
+        matchStart: hits[h].start,
+        matchEnd: hits[h].end,
       });
       matchCount++;
-      if (m[0] === '') regex.lastIndex++;
     }
   }
 

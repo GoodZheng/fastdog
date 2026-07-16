@@ -36,7 +36,7 @@ test('search: 基础纯文本匹配', async () => {
   const summary = events.find((e) => e.type === 'summary');
   assert.strictEqual(matches.length, 1);
   assert.strictEqual(matches[0].lineNumber, 2);
-  assert.strictEqual(matches[0].matchStart, 0); // 'foo' 在 'foo bar' 行首，字节偏移 0
+  assert.strictEqual(matches[0].matchStart, 0); // 'foo' 在 'foo bar' 行首，字符偏移 0
   assert.strictEqual(matches[0].matchEnd, 3);
   assert.strictEqual(summary.totalMatches, 1);
   fs.rmSync(dir, { recursive: true });
@@ -75,16 +75,16 @@ test('search: 全词匹配', async () => {
   fs.rmSync(dir, { recursive: true });
 });
 
-test('search: 字节偏移（中文多字节）', async () => {
+test('search: 字符偏移（中文多字节）', async () => {
   const dir = setupTmpDir({ 'a.txt': '你好world\n' });
   const engine = new JsSearchEngine();
   const events = await runSearch(engine, {
     searchText: 'world', searchPath: dir, isRegex: false, caseSensitive: false, wholeWord: false, fileFilter: '', excludeDirs: '',
   });
   const m = events.find((e) => e.type === 'match');
-  // '你好' = 6 字节，world 字节偏移起点应为 6
-  assert.strictEqual(m.matchStart, 6);
-  assert.strictEqual(m.matchEnd, 11);
+  // '你好' = 2 字符，world 字符偏移起点应为 2（纯 JS 引擎用 m.index，是字符偏移）
+  assert.strictEqual(m.matchStart, 2);
+  assert.strictEqual(m.matchEnd, 7);
   fs.rmSync(dir, { recursive: true });
 });
 
