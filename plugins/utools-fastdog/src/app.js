@@ -38,6 +38,7 @@
     bindDragDrop();
     initColumnResize();
     bindSort();
+    bindFileTableDelegation();
 
     // 恢复上次会话（搜索条件）+ 布局（分割比例 + 列宽）
     restoreSession();
@@ -219,8 +220,9 @@
     setStatus('搜索中...');
 
     fd.search(q, {
-      onResult: (r) => { allResults.push(r); appendFileRow(r); },
+      onResult: (r) => { allResults.push(r); enqueueFileRow(r, allResults.length - 1); },
       onStats: (s) => {
+        flushRows(); // 确保搜索结束时所有待渲染行已插入
         els.statFiles.textContent = s.searchedFiles;
         els.statMatches.textContent = s.totalMatches;
         els.statElapsed.textContent = s.elapsed;
@@ -241,19 +243,79 @@
   }
   function setStatus(t) { els.statusText.textContent = t; }
 
-  // ===== 文件列表行 =====
+  // ===== 文件列表行（批量渲染 + 事件委托，性能优化）=====
+  // 性能要点：
+  // 1. onResult 攒进 pendingRows，rAF 回调里用 innerHTML 批量拼接一次性插入（避免逐次 appendChild 重排）
+  // 2. 行用 data-idx 索引到 allResults，事件委托到 tbody（避免每行绑 3 个监听器）
+  // 3. HTML 字符串拼接 + 一次 innerHTML 赋值，比逐个 createElement 快一个数量级
+  let pendingRows = [];
+  let rafScheduled = false;
+
+  function enqueueFileRow(r, idx) {
+    pendingRows.push({ r, idx });
+    if (!rafScheduled) {
+      rafScheduled = true;
+      requestAnimationFrame(flushRows);
+    }
+  }
+
+  function flushRows() {
+    rafScheduled = false;
+    if (!pendingRows.length) return;
+    // 批量拼 HTML 一次性追加（避免逐次 appendChild 重排；字符串拼接 + 一次 innerHTML 比逐个 createElement 快）
+    const html = pendingRows.map(({ r, idx }) =>
+      '<tr data-idx="' + idx + '">' +
+      '<td class="col-name">' + H.escapeHtml(r.fileName) + '</td>' +
+      '<td class="col-size">' + formatSize(r.fileSize) + '</td>' +
+      '<td class="col-match"><span class="match-badge">' + r.matchCount + '</span></td>' +
+      '<td class="col-path">' + H.escapeHtml(r.filePath) + '</td>' +
+      '<td class="col-mtime">' + formatDate(r.lastModified) + '</td>' +
+      '</tr>'
+    ).join('');
+    els.fileTbody.insertAdjacentHTML('beforeend', html);
+    pendingRows = [];
+  }
+
+  // 事件委托：在 tbody 上一次性绑定 click/dblclick/contextmenu
+  function bindFileTableDelegation() {
+    els.fileTbody.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      const r = allResults[idx];
+      if (r) selectResult(r, tr);
+    });
+    els.fileTbody.addEventListener('dblclick', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      const r = allResults[idx];
+      if (r) fd.openFile(r.filePath);
+    });
+    els.fileTbody.addEventListener('contextmenu', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      const r = allResults[idx];
+      if (r) showFileMenu(e, r);
+    });
+  }
+
+  // 兼容排序重渲染：rerenderFileList 仍用单行 append（重排场景行数已固定，开销小）
   function appendFileRow(r) {
+    const idx = allResults.indexOf(r);
     const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
     tr.innerHTML =
       '<td class="col-name">' + H.escapeHtml(r.fileName) + '</td>' +
       '<td class="col-size">' + formatSize(r.fileSize) + '</td>' +
       '<td class="col-match"><span class="match-badge">' + r.matchCount + '</span></td>' +
       '<td class="col-path">' + H.escapeHtml(r.filePath) + '</td>' +
       '<td class="col-mtime">' + formatDate(r.lastModified) + '</td>';
-    tr.addEventListener('click', () => selectResult(r, tr));
-    tr.addEventListener('dblclick', () => fd.openFile(r.filePath));
-    tr.addEventListener('contextmenu', (e) => showFileMenu(e, r));
     els.fileTbody.appendChild(tr);
+    if (r.filePath === (selectedResult ? selectedResult.filePath : null)) {
+      tr.classList.add('selected');
+    }
   }
 
   // ===== 文件列表排序（对齐桌面版 DataGrid 点击列头排序）=====
