@@ -5,7 +5,7 @@
 //
 // matchStart/matchEnd 为字符偏移（直接用 RegExp 的 m.index），上层 highlight/filePreview 直接 slice。
 // 已废除 ripgrep 时代的字节偏移契约（纯 JS 引擎无 rg，无需字节↔字符转换）。
-// Worker 不可用（uTools 环境限制）时，走异步 IO 并发池（_searchSync + searchFileAsync）。
+// Worker 不可用（uTools 环境限制）时，走串行 searchFileSync + setImmediate 让出（主路径）。
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -166,26 +166,25 @@ class JsSearchEngine {
     });
   }
 
-  /** 异步 IO 并发池搜索（Worker 不可用时的主路径）。
-   *  用 fs.promises.readFile + 固定并发度，让读 IO 在 libuv 线程池并行，
-   *  主线程在文件读回的间隙做正则匹配，形成「读 IO ‖ 匹配 CPU」流水线。
-   *  实测 5.5 万文件：串行 6s → 并发16 约 4.4s，且主线程不阻塞（UI 可边搜边渲染）。
-   *  并发度 16 是甜点（实测 32 反而因线程池争用变慢）。 */
+  /** 单线程搜索（Worker 不可用时的主路径）。
+   *  串行 readFileSync + 定期 setImmediate 让出事件循环，使 UI 能边搜边渲染。
+   *  注意：曾尝试 fs.promises.readFile 并发池，纯 Node 里快 30%（6s→4.2s），
+   *  但 uTools/Electron 渲染进程事件循环更重，并发池的微任务调度开销超过 IO 并行收益
+   *  （实测 uTools 里 8-9s 反而比串行 6s 慢），故回退串行。 */
   async _searchSync(matcher, files, handlers) {
-    const CONCURRENCY = 16;
     let totalMatches = 0;
-    let idx = 0;
-    const self = this;
-
-    async function worker() {
-      while (idx < files.length) {
-        if (self._cancelled) return;
-        const my = idx++;
-        totalMatches += await searchFileAsync(files[my], matcher, handlers, self);
+    const YIELD_EVERY = 500;
+    let sinceYield = 0;
+    const yieldLoop = () => new Promise((r) => setImmediate(r));
+    for (const filePath of files) {
+      if (this._cancelled) break;
+      totalMatches += searchFileSync(filePath, matcher, handlers, this);
+      sinceYield++;
+      if (sinceYield >= YIELD_EVERY) {
+        sinceYield = 0;
+        await yieldLoop();
       }
     }
-    // 启动 CONCURRENCY 个 worker，它们共享 idx 游标动态领取文件
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, () => worker()));
     return totalMatches;
   }
 
