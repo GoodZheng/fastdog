@@ -10,10 +10,20 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createGitignoreFilter } = require('./gitignoreFilter');
 const { normalizeFilePattern } = require('./argumentBuilder');
+// 复用 filePreview 的二进制扩展名集合，在遍历阶段就跳过（不读内容、不搜索），
+// 对齐 ripgrep 的行为。.NET 项目含大量 .dll/.pdb/.png，这一步能砍掉近半 IO。
+const { isBinaryFile } = require('./filePreview');
 
-// 探测 worker_threads 是否可用（uTools Electron 渲染进程可能限制）
-let Worker = null;
-try { Worker = require('node:worker_threads').Worker; } catch { Worker = null; }
+// 探测 worker_threads 模块是否存在（uTools Electron 渲染进程可能限制）。
+// 注意：require 成功不代表运行时可用——"new Worker()" 可能抛
+// "The V8 platform ... does not support creating Workers"。
+// 故在首次实际创建时再做一次 try，失败则永久降级单线程。
+// FD_NO_WORKER=1 可强制禁用（调试/兼容用）。
+let WorkerCtor = null;
+if (process.env.FD_NO_WORKER !== '1') {
+  try { WorkerCtor = require('node:worker_threads').Worker; } catch { WorkerCtor = null; }
+}
+let workerRuntimeOk = WorkerCtor !== null; // 运行时是否真正可用，首次 new 失败后置 false
 
 class JsSearchEngine {
   constructor() {
@@ -34,11 +44,18 @@ class JsSearchEngine {
 
       if (this._cancelled) { handlers.onDone && handlers.onDone(); return; }
 
-      if (Worker && files.length > 50) {
-        // 多线程：文件数足够多才值得用 Worker（否则 worker 启动开销 > 收益）
-        totalMatches = await this._searchWithWorkers(q, regex, files, handlers);
+      if (workerRuntimeOk && WorkerCtor && files.length > 50) {
+        try {
+          // 多线程：文件数足够多才值得用 Worker（否则 worker 启动开销 > 收益）
+          totalMatches = await this._searchWithWorkers(q, regex, files, handlers);
+        } catch (err) {
+          // 运行时不支持 Worker（如 uTools Electron 抛 "does not support creating Workers"）
+          // 永久降级为单线程，避免后续每次都尝试失败
+          workerRuntimeOk = false;
+          totalMatches = this._searchSync(regex, files, handlers);
+        }
       } else {
-        // 单线程 fallback
+        // 单线程 fallback（Worker 不可用或文件少）
         totalMatches = this._searchSync(regex, files, handlers);
       }
 
@@ -85,7 +102,7 @@ class JsSearchEngine {
       }
 
       for (let i = 0; i < workerCount; i++) {
-        const w = new Worker(workerPath, {
+        const w = new WorkerCtor(workerPath, {
           workerData: { regexSource: regex.source, regexFlags: regex.flags },
         });
         self._workers.push(w);
@@ -223,6 +240,8 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
       const sub = await walkDir(rootPath, fullPath, fileFilterGlobs, gitFilter, engine);
       result.push(...sub);
     } else if (entry.isFile()) {
+      // 按扩展名跳过二进制文件（.dll/.png/.pdb 等），不读内容不搜索，对齐 ripgrep
+      if (isBinaryFile(entry.name)) continue;
       if (matchAnyGlob(entry.name, fileFilterGlobs)) {
         result.push(fullPath);
       }
