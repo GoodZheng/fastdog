@@ -1,5 +1,19 @@
 # FastDog uTools 插件设计
 
+> ## ⚠️ 架构演进说明（2026-07-16 更新）
+>
+> 本文档下方的「概述」及「跨平台 rg 二进制」等章节描述的是**初版设计**——捆绑 ripgrep 二进制 + `child_process.spawn` 调用。
+>
+> **实际发布版已废弃该方案**，原因：uTools 商店审核**禁止外部可执行文件**（包含捆绑的原生二进制），初版因此被拒。
+>
+> 当前实现改为**纯 JS 搜索引擎**（`fs/promises` 递归遍历 + `RegExp` 逐行匹配），详见：
+> - 实现计划：`docs/superpowers/plans/2026-07-16-pure-js-search.md`
+> - 变更记录：`plugins/utools-fastdog/CHANGELOG.md`（v1.0.0）
+>
+> 下方关于 `bin/rg-*`、`ripgrepBridge.js`、`platformRg.js`、`child_process.spawn` 的描述均已**不再适用**，仅作历史决策记录保留。当前搜索引擎为 `lib/jsSearchEngine.js`（含 Worker 多线程尝试 + 单线程 fallback + setImmediate 边搜边显示）。
+>
+> 本文档其余部分（UI 三层布局、功能需求、移植映射中除搜索引擎外的模块）仍然有效。
+
 ## 概述
 
 为 FastDog 开发 uTools 插件，让用户在 uTools 平台内完成与桌面版等价的文本搜索体验。插件复用 FastDog 的核心搜索逻辑（ripgrep 桥接、参数构建、JSON 解析、结果聚合、文件预览），用 JavaScript 重写实现层，用 HTML/CSS/JS 还原桌面版布局，捆绑 ripgrep 二进制实现跨平台运行。

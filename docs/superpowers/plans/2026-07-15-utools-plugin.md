@@ -1,5 +1,13 @@
 # FastDog uTools 插件 Implementation Plan
 
+> ## ⚠️ 本计划为初版（ripgrep 二进制方案），已部分废弃
+>
+> 本计划描述的「捆绑 ripgrep 二进制 + child_process.spawn」方案已完成并测试通过，但**上架 uTools 商店时被拒**（禁止外部可执行文件）。
+>
+> 随后进行了纯 JS 改造，搜索引擎替换为 `lib/jsSearchEngine.js`（fs/promises + RegExp），删除 bin/ 二进制与 ripgrepBridge。详见 `plugins/utools-fastdog/CHANGELOG.md` v1.0.0。
+>
+> 本文档下方关于 ripgrep 二进制下载、ripgrepBridge、platformRg 的 Task 已不适用；其余 Task（argumentBuilder/jsonParser/searchService/filePreview 移植、UI 三层布局、会话恢复、预览内查找等）仍然有效且已实现。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `plugins/utools-fastdog/` 下构建一个 uTools 插件，用 JavaScript 重写 FastDog 的核心搜索逻辑（参数构建、JSON 解析、结果聚合、文件预览），捆绑跨平台 ripgrep 二进制，用原生 HTML/CSS/JS 还原桌面版三层布局，实现除搜索历史外的全部功能。

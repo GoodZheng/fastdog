@@ -11,9 +11,17 @@
 - 移除 bin/ 下三平台 rg 二进制、ripgrepBridge、platformRg
 - 插件名改为「全文检索」，主入口关键字改为 搜索/全文搜索/文本搜索/内容搜索
 
+### 性能优化
+- 二进制文件按扩展名在遍历阶段预过滤（.dll/.png/.pdb 等不读内容不搜索，对齐 ripgrep）
+- 二进制内容检测（前 8KB 扫描 NUL 字节），双重保障避免二进制误匹配
+- 文件列表批量渲染（requestAnimationFrame 攒批 + 一次性 innerHTML），避免逐次 appendChild 重排
+- 事件委托（文件表格点击/双击/右键统一委托到 tbody，消除每行 3 个监听器）
+- 搜索引擎尝试 Worker 多线程并行（32 核环境理论可降至 1/8 耗时）；uTools 渲染进程不支持时自动降级单线程
+- 单线程搜索用 setImmediate 定期让出事件循环（每 500 文件一次），实现边搜边显示，总耗时几乎无增加
+
 ### 保留
 - 全部 UI 与功能不变（三层布局、正则/大小写/全词/文件过滤/目录排除、预览高亮、Ctrl+F 查找、排序、列宽、会话恢复、右键菜单等）
-- matchStart/matchEnd 仍为 UTF-8 字节偏移，预览跳转零错位
+- matchStart/matchEnd 仍为 UTF-8 字节偏移，预览跳转零错位（用 TextEncoder 反算字符→字节，上层 filePreview/highlight 零改动）
 
 
 ## [0.1.0] - 2026-07-15
