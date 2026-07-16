@@ -1,12 +1,11 @@
 // uTools preload：装配 lib，暴露 window.fastdog 给前端；处理 onPluginEnter 的 3 个入口。
 // 所有 uTools/Electron API 集中在此，lib/*.js 保持纯逻辑可单测。
 
-const { RipgrepBridge } = require('./lib/ripgrepBridge');
-const { buildArgs, buildFileListArgs } = require('./lib/argumentBuilder');
+const { JsSearchEngine } = require('./lib/jsSearchEngine');
 const { createSearchSession } = require('./lib/searchService');
 const { loadFileContent, byteToCharOffset } = require('./lib/filePreview');
 
-const bridge = new RipgrepBridge();
+const bridge = new JsSearchEngine();
 let currentSession = null;
 
 const fastdog = {
@@ -16,9 +15,8 @@ const fastdog = {
    * @param {{onResult:(r)=>void, onStats:(s)=>void, onDone:()=>void, onError:(e)=>void}} handlers
    */
   search(query, handlers) {
-    // 先统计待搜索文件数（对应 SearchService 的 CountFilesAsync）
-    const fileListArgs = buildFileListArgs(query);
-    bridge.countFiles(fileListArgs).then((totalFiles) => {
+    // 先统计待搜索文件数（纯 JS 引擎直接吃 query）
+    bridge.countFiles(query).then((totalFiles) => {
       doSearch(query, totalFiles, handlers);
     }).catch((e) => handlers.onError && handlers.onError(e));
   },
@@ -99,10 +97,9 @@ const fastdog = {
 window.fastdog = fastdog;
 
 function doSearch(query, totalFiles, handlers) {
-  const args = buildArgs(query);
   currentSession = createSearchSession(query.searchPath, query, { onResult: handlers.onResult });
 
-  bridge.search(args, {
+  bridge.search(query, {
     onEvent: (ev) => {
       currentSession.handleEvent(ev);
       if (ev.type === 'summary') {
