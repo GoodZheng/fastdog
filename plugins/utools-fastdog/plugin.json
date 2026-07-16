@@ -2,7 +2,7 @@
   "pluginName": "全文检索",
   "author": "zhengmingy",
   "homepage": "https://github.com/zhengmingy/fastdog",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "基于 ripgrep 的高速文本搜索工具。支持正则/纯文本、大小写、全词匹配、文件名过滤、目录排除；还原桌面版三层布局（文件列表 + 匹配行 + 文件预览高亮），预览内可 Ctrl+F 二次查找。跨平台（Win/Mac/Linux）。",
   "main": "index.html",
   "preload": "preload.js",
