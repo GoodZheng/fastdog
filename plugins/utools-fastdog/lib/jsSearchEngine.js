@@ -38,12 +38,13 @@ class JsSearchEngine {
         totalMatches += await searchFile(filePath, regex, handlers, this);
       }
 
-      // 推送 summary
+      // 推送 summary（取消时不推送，避免误导 UI 显示"完成"统计）
       if (!this._cancelled) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
         handlers.onEvent({ type: 'summary', totalMatches, matchedLines: 0, elapsed });
       }
-      if (!this._cancelled) handlers.onDone && handlers.onDone();
+      // 无论是否取消都触发 onDone（搜索结束，上层需要知道流程终止，否则 UI 卡在"搜索中"）
+      handlers.onDone && handlers.onDone();
     } catch (err) {
       handlers.onError && handlers.onError(err);
     }
