@@ -4,6 +4,9 @@
   "description": "FastDog — 基于 ripgrep 的文本搜索（uTools 插件）",
   "private": true,
   "type": "commonjs",
+  "dependencies": {
+    "ignore": "^6.0.0"
+  },
   "scripts": {
     "test": "node --test test/*.test.js"
   }

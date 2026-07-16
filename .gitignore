@@ -45,6 +45,8 @@ x64/
 *.nupkg
 *.snupkg
 package-lock.json
+# 例外：uTools 插件是 Node 项目，需要 lock 锁定依赖版本
+!plugins/utools-fastdog/package-lock.json
 
 # Visual Studio Code
 .vscode/
