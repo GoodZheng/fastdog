@@ -148,6 +148,29 @@ test('countFiles: 统计待搜索文件数', async () => {
   fs.rmSync(dir, { recursive: true });
 });
 
+test('search: 二进制文件被跳过（含 NUL 字节，对齐 ripgrep）', async () => {
+  // 模拟二进制文件：内容含 NUL 字节，但也含可被匹配的 ASCII 文本片段
+  const dir = setupTmpDir({ 'a.dll': Buffer.concat([Buffer.from('target\x00binary\x00data'), Buffer.from('target again')]) });
+  const engine = new JsSearchEngine();
+  const events = await runSearch(engine, {
+    searchText: 'target', searchPath: dir, isRegex: false, caseSensitive: false, wholeWord: false, fileFilter: '', excludeDirs: '',
+  });
+  const matches = events.filter((e) => e.type === 'match');
+  assert.strictEqual(matches.length, 0, '含 NUL 字节的二进制文件应被跳过，不产生匹配');
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('search: 纯文本文件（无 NUL 字节）正常搜索', async () => {
+  const dir = setupTmpDir({ 'a.txt': 'target line\nother target\n' });
+  const engine = new JsSearchEngine();
+  const events = await runSearch(engine, {
+    searchText: 'target', searchPath: dir, isRegex: false, caseSensitive: false, wholeWord: false, fileFilter: '', excludeDirs: '',
+  });
+  const matches = events.filter((e) => e.type === 'match');
+  assert.strictEqual(matches.length, 2, '纯文本文件应正常匹配');
+  fs.rmSync(dir, { recursive: true });
+});
+
 test('cancel: 中止搜索', async () => {
   // 建很多文件
   const files = {};

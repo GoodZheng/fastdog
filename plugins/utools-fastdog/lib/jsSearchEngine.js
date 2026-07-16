@@ -144,13 +144,18 @@ async function walkDir(rootPath, dir, fileFilterGlobs, gitFilter, engine) {
 async function searchFile(filePath, regex, handlers, engine) {
   if (engine._cancelled) return 0;
 
-  let content;
+  // 先以 Buffer 读取，做二进制检测（对齐 ripgrep：含 NUL 字节视为二进制，整个文件跳过）
+  let buf;
   try {
-    content = await fs.readFile(filePath, 'utf8');
+    buf = await fs.readFile(filePath);
   } catch {
-    return 0; // 二进制/无权限，跳过
+    return 0; // 无权限等，跳过
   }
 
+  // 二进制检测：扫描前 8KB 是否含 NUL 字节（ripgrep/file 命令的经典启发式）
+  if (isBinaryBuffer(buf)) return 0;
+
+  const content = buf.toString('utf8');
   handlers.onEvent({ type: 'fileBegin', filePath });
 
   let matchCount = 0;
@@ -188,6 +193,19 @@ async function searchFile(filePath, regex, handlers, engine) {
 
   handlers.onEvent({ type: 'fileEnd', filePath });
   return matchCount;
+}
+
+/**
+ * 二进制检测：扫描前 8KB 是否含 NUL 字节（0x00）。
+ * 对齐 ripgrep 的启发式——文本文件几乎不会有 NUL 字节，二进制文件则常见。
+ * UTF-8/GBK 等正常编码的文本不会产生 0x00 字节。
+ */
+function isBinaryBuffer(buf) {
+  const scanLen = Math.min(buf.length, 8192);
+  for (let i = 0; i < scanLen; i++) {
+    if (buf[i] === 0) return true;
+  }
+  return false;
 }
 
 /** 字符偏移 → UTF-8 字节偏移。 */
