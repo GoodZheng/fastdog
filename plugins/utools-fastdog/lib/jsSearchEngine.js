@@ -52,11 +52,11 @@ class JsSearchEngine {
           // 运行时不支持 Worker（如 uTools Electron 抛 "does not support creating Workers"）
           // 永久降级为单线程，避免后续每次都尝试失败
           workerRuntimeOk = false;
-          totalMatches = this._searchSync(regex, files, handlers);
+          totalMatches = await this._searchSync(regex, files, handlers);
         }
       } else {
         // 单线程 fallback（Worker 不可用或文件少）
-        totalMatches = this._searchSync(regex, files, handlers);
+        totalMatches = await this._searchSync(regex, files, handlers);
       }
 
       if (!this._cancelled) {
@@ -158,12 +158,22 @@ class JsSearchEngine {
     });
   }
 
-  /** 单线程 fallback（Worker 不可用时）。 */
-  _searchSync(regex, files, handlers) {
+  /** 单线程 fallback（Worker 不可用时）。async + 定期让出事件循环，使 UI 能边搜边渲染。
+   *  让出用 setImmediate（比 setTimeout(0) 延迟低一个数量级），频率不能太高否则调度开销压垮搜索。 */
+  async _searchSync(regex, files, handlers) {
     let totalMatches = 0;
+    // 每 500 个文件让出一次：5.5 万文件约让出 110 次，既能让 UI 周期性刷新，又不会因调度拖慢搜索
+    const YIELD_EVERY = 500;
+    let sinceYield = 0;
+    const yieldLoop = () => new Promise((r) => setImmediate(r));
     for (const filePath of files) {
       if (this._cancelled) break;
       totalMatches += searchFileSync(filePath, regex, handlers, this);
+      sinceYield++;
+      if (sinceYield >= YIELD_EVERY) {
+        sinceYield = 0;
+        await yieldLoop();
+      }
     }
     return totalMatches;
   }
