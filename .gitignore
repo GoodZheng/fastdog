@@ -8,10 +8,6 @@ grepWin/
 **/obj/
 **/packages/
 
-# 例外：uTools 插件捆绑的 ripgrep 二进制（运行时必需，非构建产物）
-!plugins/utools-fastdog/bin/
-!plugins/utools-fastdog/bin/*
-
 # Visual Studio
 .vs/
 *.vsix
