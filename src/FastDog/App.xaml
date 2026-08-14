@@ -108,6 +108,51 @@
             </Setter>
         </Style>
 
+        <!-- ========== DateFilterToggleButton (日期范围按钮) ========== -->
+        <!-- 视觉同 ToggleOptionButton，额外在 DateFilterEnabled=true 时也显示深蓝选中态。
+             hover 规则放在 DateFilterEnabled DataTrigger 之前，使启用状态下悬停仍保持
+             深蓝（ControlTemplate.Triggers 按文档顺序应用，后定义者优先）。 -->
+        <Style x:Key="DateFilterToggleButton" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border"
+                                Background="#fff" BorderBrush="#e0e0e0" BorderThickness="1"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="content"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="#6a6a6a"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="content" Property="TextBlock.Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource HoverBgBrush}"/>
+                            </MultiTrigger>
+                            <!-- 启用日期过滤时也变深蓝（放 hover 之后，启用态悬停不被覆盖为灰） -->
+                            <DataTrigger Binding="{Binding DateFilterEnabled}" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="content" Property="TextBlock.Foreground" Value="White"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ========== TabButtonStyle (标签栏按钮) ========== -->
         <Style x:Key="TabButtonStyle" TargetType="RadioButton">
             <Setter Property="Focusable" Value="False"/>

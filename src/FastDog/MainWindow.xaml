@@ -189,55 +189,60 @@
                                  HorizontalAlignment="Stretch"/>
                     </Grid>
 
+                    <!-- 隐藏目录白名单（"." 开头目录，如 .config;.vscode） -->
+                    <Grid Width="150" Margin="0,0,4,0">
+                        <Button x:Name="WhitelistButton"
+                                Style="{StaticResource TagButton}"
+                                Content="{Binding HiddenWhitelistDisplay}"
+                                Click="WhitelistButton_Click"
+                                ToolTip="搜索以 . 开头的目录（如 .config、.vscode）。填入的会被搜索，其余点目录(.git/.vs 等)仍跳过"
+                                HorizontalAlignment="Stretch"/>
+                        <TextBox x:Name="WhitelistTextBox"
+                                 Style="{StaticResource TagInput}"
+                                 Text="{Binding HiddenWhitelist, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="多个用 ; 分隔，例如：.config;.vscode"
+                                 Visibility="Collapsed"
+                                 LostFocus="WhitelistTextBox_LostFocus"
+                                 KeyDown="WhitelistTextBox_KeyDown"
+                                 HorizontalAlignment="Stretch"/>
+                    </Grid>
+
                     <!-- 分隔线 -->
                     <TextBlock Text="|" Foreground="#e0e0e0" Margin="4,0,4,0"
                                VerticalAlignment="Center" FontSize="12"/>
 
-                    <!-- 日期范围 -->
-                    <CheckBox x:Name="DateToggle"
-                              Style="{StaticResource ToggleOptionButton}"
-                              IsChecked="{Binding DateFilterEnabled}"
-                              Content="&#x1F4C5; 日期范围"/>
+                    <!-- 日期范围（点击弹出选择框，不再就地展开） -->
+                    <ToggleButton x:Name="DateToggle"
+                                  Style="{StaticResource DateFilterToggleButton}"
+                                  IsChecked="{Binding ElementName=DatePopup, Path=IsOpen, Mode=TwoWay}"
+                                  Content="&#x1F4C5; 日期范围"/>
 
-                    <!-- 日期选择（内联，仅启用时显示） -->
-                    <DatePicker SelectedDate="{Binding DateFrom}" Width="120"
-                                Margin="0,0,4,0" VerticalAlignment="Center">
-                        <DatePicker.Style>
-                            <Style TargetType="DatePicker">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DateFilterEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DatePicker.Style>
-                    </DatePicker>
-                    <TextBlock Text=" ~ " VerticalAlignment="Center" Foreground="#9a9a9a">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DateFilterEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <DatePicker SelectedDate="{Binding DateTo}" Width="120"
-                                Margin="4,0,0,0" VerticalAlignment="Center">
-                        <DatePicker.Style>
-                            <Style TargetType="DatePicker">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DateFilterEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DatePicker.Style>
-                    </DatePicker>
+                    <Popup x:Name="DatePopup"
+                           PlacementTarget="{Binding ElementName=DateToggle}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           PopupAnimation="Fade"
+                           AllowsTransparency="True">
+                        <Border Background="White" BorderBrush="#e0e0e0" BorderThickness="1"
+                                CornerRadius="6" Padding="14">
+                            <StackPanel MinWidth="220">
+                                <TextBlock Text="修改时间介于" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="#333" Margin="0,0,0,10"/>
+                                <TextBlock Text="起始" FontSize="11" Foreground="#9a9a9a" Margin="0,0,0,2"/>
+                                <DatePicker SelectedDate="{Binding DateFrom}" Width="200"
+                                            Margin="0,0,0,8"
+                                            CalendarOpened="DatePicker_CalendarOpened"
+                                            CalendarClosed="DatePicker_CalendarClosed"/>
+                                <TextBlock Text="结束" FontSize="11" Foreground="#9a9a9a" Margin="0,0,0,2"/>
+                                <DatePicker SelectedDate="{Binding DateTo}" Width="200"
+                                            Margin="0,0,0,10"
+                                            CalendarOpened="DatePicker_CalendarOpened"
+                                            CalendarClosed="DatePicker_CalendarClosed"/>
+                                <CheckBox Content="启用日期过滤" IsChecked="{Binding DateFilterEnabled}"
+                                          FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
                     <!-- 弹性空间 -->
                     <Border Width="10"/>
@@ -784,6 +789,20 @@
                                                         </Style>
                                                     </Border.Style>
                                                     <TextBlock Text="{Binding ExcludeDirs, StringFormat='排除: {0}'}" FontSize="10" Foreground="#9a9a9a"/>
+                                                </Border>
+                                                <!-- 隐藏目录白名单 -->
+                                                <Border Background="#f0f0f0" CornerRadius="3" Padding="4,2" Margin="0,0,4,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HiddenWhitelist}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding HiddenWhitelist, StringFormat='隐藏: {0}'}" FontSize="10" Foreground="#9a9a9a"/>
                                                 </Border>
                                             </WrapPanel>
                                         </StackPanel>

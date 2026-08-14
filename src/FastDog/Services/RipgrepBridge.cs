@@ -77,7 +77,7 @@ public sealed class RipgrepBridge : IDisposable
         if (query.WholeWord)
             sb.Append("-w ");
 
-        BuildFilterArgs(sb, query.FileFilter, query.ExcludeDirs);
+        BuildFilterArgs(sb, query.FileFilter, query.ExcludeDirs, query.HiddenWhitelist);
 
         sb.Append(EscapeArg(query.SearchText)).Append(' ');
         sb.Append(EscapeArg(query.SearchPath));
@@ -89,12 +89,12 @@ public sealed class RipgrepBridge : IDisposable
     {
         var sb = new StringBuilder();
         sb.Append("--files ");
-        BuildFilterArgs(sb, query.FileFilter, query.ExcludeDirs);
+        BuildFilterArgs(sb, query.FileFilter, query.ExcludeDirs, query.HiddenWhitelist);
         sb.Append(EscapeArg(query.SearchPath));
         return sb.ToString();
     }
 
-    private static void BuildFilterArgs(StringBuilder sb, string fileFilter, string excludeDirs)
+    private static void BuildFilterArgs(StringBuilder sb, string fileFilter, string excludeDirs, string hiddenWhitelist)
     {
         if (!string.IsNullOrWhiteSpace(fileFilter))
         {
@@ -119,8 +119,53 @@ public sealed class RipgrepBridge : IDisposable
         if (!dirs.Contains(".git"))
             dirs.Add(".git");
 
+        // 解析隐藏目录白名单（用户指定要搜索的 "." 开头目录，如 .config;.vscode）
+        var whitelist = new List<string>();
+        if (!string.IsNullOrWhiteSpace(hiddenWhitelist))
+        {
+            foreach (var dir in hiddenWhitelist.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmed = dir.Trim();
+                if (trimmed.Length > 0)
+                    whitelist.Add(trimmed);
+            }
+        }
+
+        // 白名单非空时开启隐藏搜索：ripgrep 默认 --no-hidden 会直接剪枝 "." 开头目录，
+        // 不开 --hidden 即使加正向 glob 也搜不到。glob 遵循 "later overrides earlier"
+        // （与 .gitignore 同语义），所以兜底否定 !.* 必须在白名单正向 glob 之前，
+        // 由后者覆盖，才能让指定目录被搜索、其余点目录仍跳过。
+        if (whitelist.Count > 0)
+        {
+            sb.Append("--hidden ");
+            // 白名单的正向 glob 会使 rg 进入 include 模式（只搜匹配正向 glob 的路径），
+            // 导致普通文件也被排除。用户未设文件过滤时，用 '*' 把所有普通文件拉回
+            // include 集——必须在 exclude 否定之前，否则会连带复活被排除的目录（如 bin）。
+            // （FileFilter 非空时由 --iglob 承担 include，无需 '*'。）
+            if (string.IsNullOrWhiteSpace(fileFilter))
+                sb.Append("--glob ").Append(EscapeArg("*")).Append(' ');
+        }
+
         foreach (var dir in dirs)
             sb.Append("--glob ").Append(EscapeArg("!" + dir)).Append(' ');
+
+        if (whitelist.Count > 0)
+        {
+            // 兜底：排除所有 "." 开头路径（先于白名单正向 glob，后者会覆盖它）
+            sb.Append("--glob ").Append(EscapeArg("!.*")).Append(' ');
+            // 白名单正向 glob 放最后，覆盖前面的 !.*，让这些点目录被搜索。
+            // 每个白名单目录必须生成两条 glob（缺一不可，均经实测验证）：
+            //   dir      —— 匹配目录本身，覆盖 !.* 对该目录的剪枝，使 rg 进入遍历
+            //   dir/**   —— 匹配目录下所有内容，使子文件被包含输出（仅 dir 会让目录
+            //               被遍历，但子文件因 basename 不匹配而被排除，搜不到内容）
+            // 另：显式 --glob include 规则优先级高于 .gitignore，故被 gitignore 的
+            // 点目录（如 .zcode）也能被白名单搜到，无需 --no-ignore。
+            foreach (var dir in whitelist)
+            {
+                sb.Append("--glob ").Append(EscapeArg(dir)).Append(' ');
+                sb.Append("--glob ").Append(EscapeArg(dir + "/**")).Append(' ');
+            }
+        }
     }
 
     /// <summary>

@@ -368,6 +368,36 @@ public partial class MainWindow : Window
         }
     }
 
+    private void WhitelistButton_Click(object sender, RoutedEventArgs e)
+    {
+        WhitelistButton.Visibility = Visibility.Collapsed;
+        WhitelistTextBox.Visibility = Visibility.Visible;
+        WhitelistTextBox.Focus();
+        WhitelistTextBox.SelectAll();
+    }
+
+    private void WhitelistTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        WhitelistButton.Visibility = Visibility.Visible;
+        WhitelistTextBox.Visibility = Visibility.Collapsed;
+    }
+
+    private void WhitelistTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            WhitelistButton.Visibility = Visibility.Visible;
+            WhitelistTextBox.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    // DatePicker 的日历是嵌套 Popup。外层日期弹窗 StaysOpen=False 时，展开日历后的点击
+    // 会被外层当作"外部点击"而误关弹窗，导致选不了日期。日历展开时临时切到 StaysOpen=True，
+    // 日历关闭后再恢复，从而兼顾"点外部关弹窗"与"正常选日期"。
+    private void DatePicker_CalendarOpened(object sender, RoutedEventArgs e) => DatePopup.StaysOpen = true;
+
+    private void DatePicker_CalendarClosed(object sender, RoutedEventArgs e) => DatePopup.StaysOpen = false;
+
     private void HistoryCard_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is FrameworkElement fe && fe.DataContext is SearchHistoryEntry entry)

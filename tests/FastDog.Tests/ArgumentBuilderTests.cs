@@ -125,6 +125,87 @@ public class ArgumentBuilderTests
     }
 
     [Fact]
+    public void BuildArguments_HiddenWhitelist_EnablesHiddenAndGlobs()
+    {
+        var query = new SearchQuery
+        {
+            SearchPath = @"E:\code",
+            SearchText = "test",
+            HiddenWhitelist = ".config;.vscode"
+        };
+        var args = RipgrepBridge.BuildArguments(query);
+        // 白名单非空时必须开 --hidden，否则点目录在遍历阶段被剪枝，正向 glob 也搜不到
+        Assert.Contains("--hidden", args);
+        // 无 FileFilter 时用 '*' 拉回普通文件（避免 include 模式排除普通文件）
+        Assert.Contains("--glob *", args);
+        // 兜底：排除所有 "." 开头路径
+        Assert.Contains("--glob !.*", args);
+        // 白名单正向 glob：每个目录两条（dir 覆盖剪枝 + dir/** 包含内容）
+        Assert.Contains("--glob .config", args);
+        Assert.Contains("--glob .config/**", args);
+        Assert.Contains("--glob .vscode", args);
+        Assert.Contains("--glob .vscode/**", args);
+        // 顺序：兜底 !.* 必须在白名单正向 glob 之前
+        // （ripgrep glob 遵循 later overrides earlier，正向 glob 在后才能覆盖否定）
+        Assert.True(args.IndexOf("--glob !.*") < args.IndexOf("--glob .config"),
+            "兜底 !.* 必须在白名单正向 glob 之前，否则白名单会被否定覆盖而失效");
+    }
+
+    [Fact]
+    public void BuildArguments_NoWhitelist_KeepsDefaultBehavior()
+    {
+        var query = new SearchQuery
+        {
+            SearchPath = @"E:\code",
+            SearchText = "test"
+        };
+        var args = RipgrepBridge.BuildArguments(query);
+        // 白名单为空时不应改变默认行为：不开 hidden、不加兜底 !.*
+        Assert.DoesNotContain("--hidden", args);
+        Assert.DoesNotContain("!.*", args);
+        Assert.DoesNotContain("--glob *", args);
+        // .git 硬排除保留
+        Assert.Contains("!.git", args);
+    }
+
+    [Fact]
+    public void BuildFileListArguments_HiddenWhitelist()
+    {
+        var query = new SearchQuery
+        {
+            SearchPath = @"E:\code",
+            SearchText = "test",
+            HiddenWhitelist = ".config"
+        };
+        var args = RipgrepBridge.BuildFileListArguments(query);
+        Assert.Contains("--files", args);
+        Assert.Contains("--hidden", args);
+        Assert.Contains("--glob *", args);
+        Assert.Contains("--glob .config", args);
+        Assert.Contains("--glob .config/**", args);
+        Assert.True(args.IndexOf("--glob !.*") < args.IndexOf("--glob .config"));
+    }
+
+    [Fact]
+    public void BuildArguments_HiddenWhitelist_WithFileFilter_NoStarGlob()
+    {
+        // FileFilter 非空时由 --iglob 承担 include，不应再加 '*'（否则会破坏文件过滤）
+        var query = new SearchQuery
+        {
+            SearchPath = @"E:\code",
+            SearchText = "test",
+            FileFilter = "*.md",
+            HiddenWhitelist = ".config"
+        };
+        var args = RipgrepBridge.BuildArguments(query);
+        Assert.Contains("--hidden", args);
+        Assert.DoesNotContain("--glob *", args);
+        Assert.Contains("--iglob *.md", args);
+        Assert.Contains("--glob .config", args);
+        Assert.Contains("--glob .config/**", args);
+    }
+
+    [Fact]
     public void BuildArguments_AllOptionsCombined()
     {
         var query = new SearchQuery

@@ -9,6 +9,7 @@ public class SearchHistoryEntry
     public bool WholeWord { get; set; }
     public string FileFilter { get; set; } = string.Empty;
     public string ExcludeDirs { get; set; } = string.Empty;
+    public string HiddenWhitelist { get; set; } = string.Empty;
     public bool DateFilterEnabled { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
@@ -20,7 +21,7 @@ public class SearchHistoryEntry
 
     public DateTime SearchedAt { get; set; } = DateTime.Now;
 
-    public string DedupKey => $"{SearchText}|{SearchPath}|{IsRegex}|{CaseSensitive}|{WholeWord}|{FileFilter}|{ExcludeDirs}";
+    public string DedupKey => $"{SearchText}|{SearchPath}|{IsRegex}|{CaseSensitive}|{WholeWord}|{FileFilter}|{ExcludeDirs}|{HiddenWhitelist}";
 
     public string OptionsSummary
     {
@@ -33,6 +34,8 @@ public class SearchHistoryEntry
             if (!string.IsNullOrEmpty(FileFilter)) parts.Add(FileFilter);
             if (!string.IsNullOrEmpty(ExcludeDirs) && ExcludeDirs != "bin;obj")
                 parts.Add($"排除: {ExcludeDirs}");
+            if (!string.IsNullOrEmpty(HiddenWhitelist))
+                parts.Add($"隐藏: {HiddenWhitelist}");
             return string.Join(", ", parts);
         }
     }

@@ -24,6 +24,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _wholeWord = false;
     [ObservableProperty] private string _fileFilter = string.Empty;
     [ObservableProperty] private string _excludeDirs = "bin;obj";
+    [ObservableProperty] private string _hiddenWhitelist = string.Empty;
     [ObservableProperty] private bool _dateFilterEnabled = false;
     [ObservableProperty] private DateTime? _dateFrom;
     [ObservableProperty] private DateTime? _dateTo;
@@ -69,6 +70,7 @@ public partial class MainViewModel : ObservableObject
 
     public string FileFilterDisplay => string.IsNullOrEmpty(FileFilter) ? "文件: *" : $"文件: {FileFilter}";
     public string ExcludeDirsDisplay => string.IsNullOrEmpty(ExcludeDirs) ? "排除: (无)" : $"排除: {ExcludeDirs}";
+    public string HiddenWhitelistDisplay => string.IsNullOrEmpty(HiddenWhitelist) ? "含隐藏目录" : $"含: {HiddenWhitelist}";
 
     public MainViewModel()
     {
@@ -189,10 +191,21 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ExcludeDirsDisplay));
     }
 
+    partial void OnHiddenWhitelistChanged(string value)
+    {
+        ClearSessionRestore();
+        OnPropertyChanged(nameof(HiddenWhitelistDisplay));
+    }
+
     // 日期范围交叉校验：始终保证 DateFrom <= DateTo，避免出现倒置区间。
     // 任一边改变后若越过另一边，就把另一边拉齐到当前值。仅在确实越界时才
     // 写回，因此由它触发的对侧 OnXxxChanged 内的判断不会再次成立，不会
     // 形成无限递归。
+    partial void OnDateFilterEnabledChanged(bool value)
+    {
+        ClearSessionRestore();
+    }
+
     partial void OnDateFromChanged(DateTime? value)
     {
         if (value is not null && DateTo is not null && value > DateTo)
@@ -273,6 +286,7 @@ public partial class MainViewModel : ObservableObject
             WholeWord = WholeWord,
             FileFilter = FileFilter,
             ExcludeDirs = ExcludeDirs,
+            HiddenWhitelist = HiddenWhitelist,
             DateFilterEnabled = DateFilterEnabled,
             DateFrom = DateFrom,
             DateTo = DateTo
@@ -402,6 +416,7 @@ public partial class MainViewModel : ObservableObject
         WholeWord = entry.WholeWord;
         FileFilter = entry.FileFilter;
         ExcludeDirs = entry.ExcludeDirs;
+        HiddenWhitelist = entry.HiddenWhitelist;
         DateFilterEnabled = entry.DateFilterEnabled;
         DateFrom = entry.DateFrom;
         DateTo = entry.DateTo;
@@ -418,6 +433,7 @@ public partial class MainViewModel : ObservableObject
             WholeWord = WholeWord,
             FileFilter = FileFilter,
             ExcludeDirs = ExcludeDirs,
+            HiddenWhitelist = HiddenWhitelist,
             DateFilterEnabled = DateFilterEnabled,
             DateFrom = DateFrom,
             DateTo = DateTo
@@ -490,6 +506,7 @@ public partial class MainViewModel : ObservableObject
                 WholeWord = WholeWord,
                 FileFilter = FileFilter,
                 ExcludeDirs = ExcludeDirs,
+                HiddenWhitelist = HiddenWhitelist,
                 DateFilterEnabled = DateFilterEnabled,
                 DateFrom = DateFrom,
                 DateTo = DateTo,
