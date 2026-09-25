@@ -5,7 +5,7 @@ namespace FastDog.Services;
 
 public class SearchHistoryService
 {
-    private const int MaxHistoryCount = 50;
+    public const int MaxHistoryCount = 50;
     private const string FileName = "search-history.json";
 
     private readonly string _filePath;

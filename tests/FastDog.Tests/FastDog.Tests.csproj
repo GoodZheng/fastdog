@@ -24,4 +24,9 @@
     <ProjectReference Include="..\..\src\FastDog\FastDog.csproj" />
   </ItemGroup>
 
+  <!-- 集成测试需要真实 rg.exe：与主工程一致拷到输出目录 tools\ 下（RipgrepBridge.FindRgPath 按此查找） -->
+  <ItemGroup>
+    <None Include="..\..\tools\rg.exe" CopyToOutputDirectory="PreserveNewest" Link="tools\rg.exe" />
+  </ItemGroup>
+
 </Project>

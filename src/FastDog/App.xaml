@@ -27,6 +27,26 @@
         <!-- ========== Converters ========== -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
+        <!-- ========== 模式可见性（文本/文件搜索模式切换） ========== -->
+        <!-- 文本模式独占控件：默认可见，文件模式下折叠 -->
+        <Style x:Key="TextModeVisibility" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Visible"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsFileSearchMode}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- 文件模式独占控件：默认折叠，文件模式下可见 -->
+        <Style x:Key="FileModeVisibility" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsFileSearchMode}" Value="True">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- ========== CaptionButton (标题栏最小化/最大化/关闭按钮) ========== -->
         <Style x:Key="CaptionButton" TargetType="Button">
             <Setter Property="Width" Value="46"/>
@@ -310,8 +330,7 @@
         </Style>
 
         <!-- ========== TagButton (文件过滤/排除 标签按钮) ========== -->
-        <Style x:Key="TagButton" TargetType="Button">
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="TagButton" TargetType="Button">            <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Background" Value="#fff"/>
             <Setter Property="Foreground" Value="#6a6a6a"/>
@@ -333,6 +352,66 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#e8e8e8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== TagToggleButton (后缀过滤下拉触发钮，视觉同 TagButton 的 ToggleButton 版) ========== -->
+        <Style x:Key="TagToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource DateFilterToggleButton}"/>
+
+        <!-- ========== LinkButton (下拉面板内的文字链接按钮：清空/恢复默认) ========== -->
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="4,1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBgBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== ExtDeleteButton (后缀项 ✕ 删除钮) ========== -->
+        <Style x:Key="ExtDeleteButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#bcbcbc"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ToolTip" Value="从列表移除该后缀"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="3" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#f7e5e3"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

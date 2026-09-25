@@ -86,8 +86,15 @@ public partial class MainWindow : Window
         // 绑定输入历史自动补全控制器（搜索路径 / 搜索内容各一个）
         SetupInputHistoryControllers();
 
+        // 输入即搜：窗口渲染完成、会话恢复写入完毕后才启用（VM 构造期写属性不能触发自动搜索）
+        _vm.EnableLiveFileSearch();
+
         var editor = FindEditor();
         if (editor is null) return;
+
+        // 行号边栏离预览左边缘留 5px 间隔（默认贴边显示，视觉上太挤）
+        foreach (var margin in editor.TextArea.LeftMargins.OfType<System.Windows.FrameworkElement>())
+            margin.Margin = new System.Windows.Thickness(5, 0, 0, 0);
 
         // 安装 AvalonEdit 内置查找面板：Ctrl+F 唤起、选中文本预填、切换文件自动重跑均由内置实现覆盖。
         // MarkerBrush 设浅橙（所有命中项），与主搜索黄色高亮（TextMarkerService，KnownLayer.Background）通过
@@ -114,6 +121,10 @@ public partial class MainWindow : Window
                 case nameof(MainViewModel.FilePath):
                     ApplySyntaxHighlighting(editor, _vm.FilePath);
                     break;
+                case nameof(MainViewModel.IsFileSearchMode):
+                    // 模式切换：下半区在"匹配行+预览"与"全宽预览"间切换
+                    ApplyBottomPanelLayout(_vm.IsFileSearchMode);
+                    break;
             }
         };
 
@@ -132,6 +143,10 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() => ApplySplitRatios(layoutConfig));
         }
+
+        // 会话恢复可能直接落在文件模式：在分割比例恢复之后应用下半区布局
+        // （同 Dispatcher 优先级 FIFO，晚于 ApplySplitRatios 执行）
+        Dispatcher.BeginInvoke(() => ApplyBottomPanelLayout(_vm.IsFileSearchMode));
     }
 
     private void LoadFileContent(TextEditor editor, MainViewModel vm)
@@ -240,6 +255,35 @@ public partial class MainWindow : Window
         vm.SelectedResults.Clear();
         foreach (SearchResult item in ResultsGrid.SelectedItems)
             vm.SelectedResults.Add(item);
+    }
+
+    /// <summary>同步文件结果表多选到 ViewModel.SelectedFileResults（语义同文本表）。</summary>
+    private void FileResultsGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        vm.SelectedFileResults.Clear();
+        foreach (FileSearchResult item in FileResultsGrid.SelectedItems)
+            vm.SelectedFileResults.Add(item);
+    }
+
+    private void FileGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // 只有双击数据行才打开，忽略表头/空白处
+        if (FindAncestor<DataGridRow>(e.OriginalSource as DependencyObject) is null) return;
+
+        if (DataContext is MainViewModel vm)
+            vm.OpenFileCommand.Execute(null);
+    }
+
+    /// <summary>后缀下拉「添加」输入框：回车等同点击「添加」按钮。</summary>
+    private void ExtAddTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
+        {
+            vm.AddExtensionCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void MatchList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -422,12 +466,58 @@ public partial class MainWindow : Window
             rowDefs[2].Height = new GridLength(1.0 - config.VerticalSplitRatio, GridUnitType.Star);
         }
 
-        // 左右分割：Column 0 vs Column 2
+        // 左右分割：Column 0 vs Column 2（文件模式下预览跨全宽，
+        // 列宽由 ApplyBottomPanelLayout 接管，此处不动横向比例）
+        if (DataContext is MainViewModel vm && vm.IsFileSearchMode) return;
+
         var colDefs = BottomPanelGrid.ColumnDefinitions;
         if (colDefs.Count >= 3)
         {
             colDefs[0].Width = new GridLength(config.HorizontalSplitRatio, GridUnitType.Star);
             colDefs[2].Width = new GridLength(1.0 - config.HorizontalSplitRatio, GridUnitType.Star);
+        }
+    }
+
+    // 文件模式切换前的下半区列状态（切回文本模式时还原）
+    private bool _fileModeLayoutSaved;
+    private GridLength _savedCol0Width = new(0.35, GridUnitType.Star);
+    private double _savedCol0MinWidth = 200;
+    private GridLength _savedCol2Width = new(0.65, GridUnitType.Star);
+
+    /// <summary>
+    /// 下半区双模式布局：文本模式 = 匹配行(35%) + 分隔 + 预览(65%)；
+    /// 文件模式 = 匹配行列收零、预览跨全宽。
+    /// 必须用代码直接写本地值——Grid 的 Width/MinWidth/ColumnSpan 一旦存在
+    /// 本地值（XAML 特性或 ApplySplitRatios 的代码赋值），样式/触发器永远
+    /// 无法覆盖，这也是此前 XAML 触发器方案失效的根因。
+    /// </summary>
+    private void ApplyBottomPanelLayout(bool fileMode)
+    {
+        var col0 = BottomPanelGrid.ColumnDefinitions[0];
+        var col2 = BottomPanelGrid.ColumnDefinitions[2];
+        if (fileMode)
+        {
+            if (!_fileModeLayoutSaved)
+            {
+                _savedCol0Width = col0.Width;
+                _savedCol0MinWidth = col0.MinWidth;
+                _savedCol2Width = col2.Width;
+                _fileModeLayoutSaved = true;
+            }
+            col0.Width = new GridLength(0);
+            col0.MinWidth = 0;
+            Grid.SetColumnSpan(PreviewPanelGrid, 3);
+        }
+        else
+        {
+            if (_fileModeLayoutSaved)
+            {
+                col0.Width = _savedCol0Width;
+                col0.MinWidth = _savedCol0MinWidth;
+                col2.Width = _savedCol2Width;
+                _fileModeLayoutSaved = false;
+            }
+            Grid.SetColumnSpan(PreviewPanelGrid, 1);
         }
     }
 
@@ -466,7 +556,11 @@ public partial class MainWindow : Window
                 verticalRatio = rowDefs[0].Height.Value / total;
         }
 
-        if (colDefs.Count >= 3 &&
+        // 文件模式下左右分割被隐藏（列宽置 0），此时不采集横向比例，
+        // 保留默认值，避免退出文件模式后布局异常
+        var isFileMode = DataContext is MainViewModel vm && vm.IsFileSearchMode;
+        if (!isFileMode &&
+            colDefs.Count >= 3 &&
             colDefs[0].Width.GridUnitType == GridUnitType.Star &&
             colDefs[2].Width.GridUnitType == GridUnitType.Star)
         {

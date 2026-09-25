@@ -57,7 +57,9 @@ tmp/
 
 # Build outputs (dotnet publish / Inno Setup / portable)
 publish/
-installer/
+# installer/ 下只忽略构建产物（Setup exe），语言文件 ChineseSimplified.isl 需入库
+installer/*
+!installer/ChineseSimplified.isl
 release/
 
 # Local tool / agent configs

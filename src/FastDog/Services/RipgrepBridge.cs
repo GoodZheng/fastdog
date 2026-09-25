@@ -94,6 +94,21 @@ public sealed class RipgrepBridge : IDisposable
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 构建文件搜索（--files 模式）参数：仅枚举路径，不做任何内容匹配。
+    /// 后缀多选不再交给 rg glob——改由 C# 侧（FileSearchService.MatchesExtensions）过滤，
+    /// 使枚举结果与后缀选择解耦、可被输入即搜的内存缓存复用；
+    /// 排除目录（默认含 .git）与隐藏目录白名单的语义与文本搜索完全一致。
+    /// </summary>
+    public static string BuildFileSearchArguments(FileSearchQuery query)
+    {
+        var sb = new StringBuilder();
+        sb.Append("--files ");
+        BuildFilterArgs(sb, string.Empty, query.ExcludeDirs, query.HiddenWhitelist);
+        sb.Append(EscapeArg(query.SearchPath));
+        return sb.ToString();
+    }
+
     private static void BuildFilterArgs(StringBuilder sb, string fileFilter, string excludeDirs, string hiddenWhitelist)
     {
         if (!string.IsNullOrWhiteSpace(fileFilter))
@@ -380,6 +395,43 @@ public sealed class RipgrepBridge : IDisposable
             var rgEvent = ParseRgLine(line);
             if (rgEvent is not null)
                 yield return rgEvent;
+        }
+
+        if (!ct.IsCancellationRequested)
+            await _process.WaitForExitAsync(ct);
+        else
+            KillProcess();
+    }
+
+    /// <summary>
+    /// 流式执行 rg 并逐行产出原始输出行。用于 --files 模式的路径枚举
+    /// （非 --json 输出），与 SearchAsync 相同的进程生命周期管理。
+    /// </summary>
+    public async IAsyncEnumerable<string> ListFilesAsync(
+        string arguments,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var rgPath = FindRgPath();
+        var psi = new ProcessStartInfo
+        {
+            FileName = rgPath,
+            Arguments = arguments,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8
+        };
+
+        _process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 rg.exe");
+
+        var reader = _process.StandardOutput;
+        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (line is null) break;
+            if (line.Length > 0)
+                yield return line;
         }
 
         if (!ct.IsCancellationRequested)

@@ -4,7 +4,8 @@
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:models="clr-namespace:FastDog.Models"
-        Title="FastDog — 基于 ripgrep 的文本搜索" Height="800" Width="1200"
+        Title="FastDog — 文本 / 文件名双模式搜索" Height="800" Width="1200"
+        MinHeight="600" MinWidth="960"
         Icon="Assets/newLogo1.2.ico"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
@@ -39,7 +40,7 @@
                     <TextBlock VerticalAlignment="Center">
                         <Run Text="Fast" FontWeight="ExtraBold" FontSize="13" Foreground="#e74c3c"/>
                         <Run Text="Dog" FontWeight="ExtraBold" FontSize="13" Foreground="#1e1e1e"/>
-                        <Run Text=" — 基于 ripgrep 的文本搜索" FontSize="12" Foreground="#9a9a9a"/>
+                        <Run Text=" — 文本 / 文件名双模式搜索" FontSize="12" Foreground="#9a9a9a"/>
                     </TextBlock>
                     <TextBlock VerticalAlignment="Center" Margin="6,0,0,0"
                                FontSize="12" Foreground="#9a9a9a"
@@ -76,6 +77,22 @@
                 BorderBrush="#e0e0e0" BorderThickness="0,0,0,1"
                 Padding="16,14,16,10">
             <StackPanel>
+                <!-- 搜索模式（文本搜索=全文内容，文件搜索=文件名/后缀） -->
+                <DockPanel Margin="0,0,0,6">
+                    <TextBlock Text="搜索模式" FontSize="12" Foreground="#9a9a9a"
+                               Width="55" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="SearchModeTop"
+                                     Style="{StaticResource ToggleOptionButton}"
+                                     IsChecked="{Binding IsTextSearchMode}"
+                                     Content="文本搜索"/>
+                        <RadioButton GroupName="SearchModeTop"
+                                     Style="{StaticResource ToggleOptionButton}"
+                                     IsChecked="{Binding IsFileSearchMode}"
+                                     Content="文件搜索"/>
+                    </StackPanel>
+                </DockPanel>
+
                 <!-- 搜索路径 -->
                 <DockPanel Margin="0,0,0,6">
                     <TextBlock Text="搜索路径" FontSize="12" Foreground="#9a9a9a"
@@ -106,8 +123,8 @@
                     </Grid>
                 </DockPanel>
 
-                <!-- 搜索内容 -->
-                <DockPanel Margin="0,0,0,8">
+                <!-- 搜索内容（文本模式） -->
+                <DockPanel Margin="0,0,0,8" Style="{StaticResource TextModeVisibility}">
                     <TextBlock Text="搜索内容" FontSize="12" Foreground="#9a9a9a"
                                Width="55" VerticalAlignment="Center"/>
                     <Grid>
@@ -133,32 +150,132 @@
                     </Grid>
                 </DockPanel>
 
+                <!-- 文件名称（文件模式）：空=全部；支持 * ? 通配符 -->
+                <DockPanel Margin="0,0,0,8" Style="{StaticResource FileModeVisibility}">
+                    <TextBlock Text="文件名称" FontSize="12" Foreground="#9a9a9a"
+                               Width="55" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding FileSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource SearchInput}"
+                             ToolTip="按名称匹配：直接输入按子串包含；含 * 或 ? 按通配符；留空显示全部"/>
+                </DockPanel>
+
                 <!-- 按钮行 -->
                 <WrapPanel Orientation="Horizontal">
-                    <!-- 搜索模式 -->
+                    <!-- 匹配方式（文本模式） -->
                     <RadioButton GroupName="SearchMode"
                                  Style="{StaticResource ToggleOptionButton}"
+                                 Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}"
                                  IsChecked="{Binding IsRegex}"
                                  Content="正则表达式"/>
                     <RadioButton GroupName="SearchMode"
                                  Style="{StaticResource ToggleOptionButton}"
+                                 Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}"
                                  IsChecked="{Binding IsPlainText}"
                                  Content="纯文本"/>
 
-                    <!-- 选项 -->
+                    <!-- 选项（文本模式） -->
                     <CheckBox Style="{StaticResource ToggleOptionButton}"
+                              Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}"
                               IsChecked="{Binding CaseSensitive}"
                               Content="区分大小写 (Aa)"/>
                     <CheckBox Style="{StaticResource ToggleOptionButton}"
+                              Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}"
                               IsChecked="{Binding WholeWord}"
                               Content="全词匹配"/>
+
+                    <!-- 选项（文件模式）：对象类型双开关，全关时搜索按钮置灰 -->
+                    <CheckBox Style="{StaticResource ToggleOptionButton}"
+                              Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}"
+                              IsChecked="{Binding IncludeFiles}"
+                              ToolTip="结果包含文件；与「文件夹」全关时无法搜索"
+                              Content="文件"/>
+                    <CheckBox Style="{StaticResource ToggleOptionButton}"
+                              Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}"
+                              IsChecked="{Binding IncludeFolders}"
+                              ToolTip="结果包含文件夹；与「文件」全关时无法搜索"
+                              Content="文件夹"/>
+                    <CheckBox Style="{StaticResource ToggleOptionButton}"
+                              Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}"
+                              IsChecked="{Binding FileCaseSensitive}"
+                              Content="区分大小写 (Aa)"/>
+
+                    <!-- 后缀过滤下拉（文件模式）：多选，不选=显示全部 -->
+                    <ToggleButton x:Name="ExtFilterToggle"
+                                  Style="{StaticResource TagToggleButton}"
+                                  Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}"
+                                  IsChecked="{Binding ElementName=ExtPopup, Path=IsOpen, Mode=TwoWay}"
+                                  Content="{Binding ExtensionFilterDisplay}"
+                                  ToolTip="按后缀过滤，可多选；不选任何项 = 显示全部匹配"/>
+                    <Popup x:Name="ExtPopup"
+                           PlacementTarget="{Binding ElementName=ExtFilterToggle}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           PopupAnimation="Fade"
+                           AllowsTransparency="True">
+                        <Border Background="White" BorderBrush="#e0e0e0" BorderThickness="1"
+                                CornerRadius="6" Padding="8" Width="264">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" Opacity="0.18" BlurRadius="16"
+                                                  ShadowDepth="3" Direction="270"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Content="清空" Style="{StaticResource LinkButton}"
+                                                Command="{Binding ClearExtensionSelectionCommand}"
+                                                ToolTip="清空所有勾选，显示全部匹配"/>
+                                        <TextBlock Text="·" Foreground="#bcbcbc" Margin="3,0"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Content="恢复默认" Style="{StaticResource LinkButton}"
+                                                Command="{Binding RestoreDefaultExtensionsCommand}"
+                                                ToolTip="还原被删除的内置后缀"/>
+                                    </StackPanel>
+                                    <TextBlock Text="按后缀过滤（可多选）" FontSize="12"
+                                               FontWeight="SemiBold" Foreground="#333"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding ExtensionItems}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,1">
+                                                    <Button DockPanel.Dock="Right"
+                                                            Style="{StaticResource ExtDeleteButton}"
+                                                            Command="{Binding DataContext.RemoveExtensionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Content="✕"/>
+                                                    <CheckBox IsChecked="{Binding IsSelected}"
+                                                              Content="{Binding Name}"
+                                                              FontSize="13" Foreground="#1e1e1e"
+                                                              VerticalAlignment="Center"
+                                                              Cursor="Hand"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <DockPanel Margin="0,6,0,0">
+                                    <Button DockPanel.Dock="Right" Content="添加"
+                                            Style="{StaticResource ActionButton}"
+                                            Margin="4,0,0,0"
+                                            Command="{Binding AddExtensionCommand}"/>
+                                    <TextBox x:Name="ExtAddTextBox"
+                                             Text="{Binding ExtensionInput, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource SearchInput}" FontSize="12"
+                                             KeyDown="ExtAddTextBox_KeyDown"
+                                             ToolTip="自定义后缀，如 log 或 *.log，回车添加"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
                     <!-- 分隔线 -->
                     <TextBlock Text="|" Foreground="#e0e0e0" Margin="4,0,4,0"
                                VerticalAlignment="Center" FontSize="12"/>
 
-                    <!-- 文件过滤 -->
-                    <Grid Width="120" Margin="0,0,4,0">
+                    <!-- 文件过滤（文本模式；文件模式由「后缀过滤」承担） -->
+                    <Grid Width="120" Margin="0,0,4,0"
+                          Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}">
                         <Button x:Name="FileFilterButton"
                                 Style="{StaticResource TagButton}"
                                 Content="{Binding FileFilterDisplay}"
@@ -300,15 +417,32 @@
                     <Run Text="{Binding StatusText, Mode=OneWay}"/>
                 </TextBlock>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                    <TextBlock Foreground="#555" FontSize="12" VerticalAlignment="Center">
-                        <Run Text="文件: "/><Run Text="{Binding TotalFiles, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
-                    </TextBlock>
-                    <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
-                        <Run Text="匹配: "/><Run Text="{Binding TotalMatches, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
-                    </TextBlock>
-                    <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
-                        <Run Text="耗时: "/><Run Text="{Binding ElapsedTime, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
-                    </TextBlock>
+                    <!-- 文本模式统计：文件 / 匹配 / 耗时 -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Foreground="#555" FontSize="12" VerticalAlignment="Center">
+                            <Run Text="文件: "/><Run Text="{Binding TotalFiles, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                        <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <Run Text="匹配: "/><Run Text="{Binding TotalMatches, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                        <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <Run Text="耗时: "/><Run Text="{Binding ElapsedTime, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <!-- 文件模式统计：文件 / 文件夹 / 耗时 -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Foreground="#555" FontSize="12" VerticalAlignment="Center">
+                            <Run Text="文件: "/><Run Text="{Binding FileResultCount, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                        <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <Run Text="文件夹: "/><Run Text="{Binding FolderResultCount, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                        <TextBlock Foreground="#555" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <Run Text="耗时: "/><Run Text="{Binding ElapsedTime, Mode=OneWay}" Foreground="#0e639c" FontWeight="Bold"/>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>
@@ -333,6 +467,18 @@
                     <RowDefinition Height="3*"/>
                 </Grid.RowDefinitions>
 
+                <!-- 结果列表宿主：文本结果表 / 文件结果表按模式互斥显示 -->
+                <Grid Grid.Row="0">
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSearchMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
                 <!-- 文件列表 -->
                 <DataGrid x:Name="ResultsGrid"
                           Grid.Row="0"
@@ -479,13 +625,209 @@
                         </DataGridTextColumn>
                     </DataGrid.Columns>
                 </DataGrid>
+                </Grid>
+
+                <!-- 文件搜索结果列表（文件夹优先排序在 ViewModel 完成时统一重排） -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSearchMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <DataGrid x:Name="FileResultsGrid"
+                              ItemsSource="{Binding FileResults}"
+                              SelectedItem="{Binding SelectedFileResult}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Extended"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#f0f0f0"
+                              BorderThickness="0"
+                              Background="White"
+                              SelectionChanged="FileResultsGrid_SelectionChanged"
+                              MouseDoubleClick="FileGrid_MouseDoubleClick">
+                        <DataGrid.Resources>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#fafafa"/>
+                                <Setter Property="Foreground" Value="#9a9a9a"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="Padding" Value="8,7"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="BorderBrush" Value="#e0e0e0"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#e8e8e8"/>
+                                        <Setter Property="Foreground" Value="#1e1e1e"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridRow">
+                                            <Border Background="{TemplateBinding Background}">
+                                                <DataGridCellsPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource AccentBgHoverBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource AccentBgBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="6,4"/>
+                                <Setter Property="Focusable" Value="False"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Foreground" Value="#1e1e1e"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Resources>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="打开" Command="{Binding OpenFileCommand}"
+                                          InputGestureText="双击"/>
+                                <MenuItem Header="在资源管理器中打开" Command="{Binding OpenInExplorerCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="复制文件名" Command="{Binding CopyFileNameCommand}"/>
+                                <MenuItem Header="复制文件路径" Command="{Binding CopyPathCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <!-- 文件名：类型图标 + 名称 -->
+                            <DataGridTemplateColumn Header="文件名" Width="240" SortMemberPath="FileName">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                       Margin="10,0,6,0" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="&#xE7C3;"/>
+                                                        <Setter Property="Foreground" Value="#8aa5b8"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                                <Setter Property="Text" Value="&#xE8B7;"/>
+                                                                <Setter Property="Foreground" Value="#f0b429"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding FileName}" FontWeight="Medium"
+                                                       Foreground="#1e1e1e" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- 类型：文件显示后缀徽章，文件夹显示灰色徽章 -->
+                            <DataGridTemplateColumn Header="类型" Width="80" SortMemberPath="Extension">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="9" Padding="7,1"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#cce5ff"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                            <Setter Property="Background" Value="#f0f0f0"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="11" HorizontalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding Extension}"/>
+                                                        <Setter Property="Foreground" Value="#0e639c"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                                <Setter Property="Text" Value="文件夹"/>
+                                                                <Setter Property="Foreground" Value="#9a9a9a"/>
+                                                                <Setter Property="FontWeight" Value="Normal"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="大小" Width="90"
+                                                Binding="{Binding FileSizeDisplay}"
+                                                SortMemberPath="FileSize">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#6a6a6a"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="修改时间"
+                                                Binding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                                Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#9a9a9a"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="路径" Binding="{Binding RelativePath}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#9a9a9a"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+                </Grid>
 
                 <!-- 分割线 -->
                 <GridSplitter Grid.Row="1" Height="3" HorizontalAlignment="Stretch"
                               Background="#e0e0e0"
                               DragCompleted="Splitter_DragCompleted"/>
 
-                <!-- 下半区：匹配行 + 预览 -->
+                <!-- 下半区：匹配行 + 预览（文件模式下匹配行列收零、预览跨全宽，
+                     由 MainWindow.ApplyBottomPanelLayout 在模式切换时调整，见代码后置） -->
                 <Grid x:Name="BottomPanelGrid" Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="35*" MinWidth="200"/>
@@ -493,8 +835,8 @@
                         <ColumnDefinition Width="65*" MinWidth="300"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 左侧：匹配行 -->
-                    <Grid Grid.Column="0">
+                    <!-- 左侧：匹配行（仅文本模式） -->
+                    <Grid Grid.Column="0" Style="{StaticResource TextModeVisibility}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -565,10 +907,11 @@
 
                     <GridSplitter Grid.Column="1" Width="2" HorizontalAlignment="Stretch"
                                   Background="#e0e0e0" VerticalAlignment="Stretch"
-                                  DragCompleted="Splitter_DragCompleted"/>
+                                  DragCompleted="Splitter_DragCompleted"
+                                  Style="{StaticResource TextModeVisibility}"/>
 
-                    <!-- 右侧：文件预览 -->
-                    <Grid Grid.Column="2">
+                    <!-- 右侧：文件预览（文件模式下跨全宽；选中文件夹时显示信息面板） -->
+                    <Grid x:Name="PreviewPanelGrid" Grid.Column="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -584,12 +927,28 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="文件预览" FontWeight="SemiBold" FontSize="12" Foreground="#9a9a9a"/>
                                     <TextBlock Text=" — " FontSize="12" Foreground="#9a9a9a"/>
+                                    <!-- 文本模式标题跟随文本结果选中项 -->
                                     <TextBlock Text="{Binding SelectedResult.FileName, FallbackValue=''}"
-                                               FontSize="12" Foreground="#9a9a9a"/>
+                                               FontSize="12" Foreground="#9a9a9a"
+                                               Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsTextSearchMode, Converter={StaticResource BoolToVis}}"/>
+                                    <!-- 文件模式标题跟随文件结果选中项（文件夹时显示文件夹名） -->
+                                    <TextBlock Text="{Binding SelectedFileResult.FileName, FallbackValue=''}"
+                                               FontSize="12" Foreground="#9a9a9a"
+                                               Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.IsFileSearchMode, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
+                        <!-- 编辑器宿主：选中文件夹时隐藏 -->
                         <Grid Grid.Row="1">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFolderSelected}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
                             <avalonedit:TextEditor Name="PreviewEditor"
                                 IsReadOnly="True"
                                 ShowLineNumbers="True"
@@ -634,6 +993,44 @@
                                     </Binding>
                                 </TextBlock.Visibility>
                             </TextBlock>
+                        </Grid>
+
+                        <!-- 文件夹信息面板（文件模式选中文件夹时，替代文件预览） -->
+                        <Grid Grid.Row="1" Background="White">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFolderSelected}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <StackPanel Margin="32,26" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8B7;" FontSize="17"
+                                               Foreground="#f0b429" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding SelectedFileResult.FileName, FallbackValue=''}"
+                                               FontSize="17" FontWeight="SemiBold" Foreground="#1e1e1e"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="类型" FontSize="13" Foreground="#9a9a9a" Width="90"/>
+                                    <TextBlock Text="文件夹" FontSize="13" Foreground="#1e1e1e"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="路径" FontSize="13" Foreground="#9a9a9a" Width="90"/>
+                                    <TextBlock Text="{Binding FolderInfoPath, FallbackValue=''}"
+                                               FontSize="13" Foreground="#1e1e1e"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="修改时间" FontSize="13" Foreground="#9a9a9a" Width="90"/>
+                                    <TextBlock Text="{Binding FolderInfoModified, FallbackValue=''}"
+                                               FontSize="13" Foreground="#1e1e1e"/>
+                                </StackPanel>
+                                <TextBlock Text="文件夹不支持内容预览；双击行可在资源管理器中打开。"
+                                           FontSize="12" Foreground="#9a9a9a" Margin="0,22,0,0"/>
+                            </StackPanel>
                         </Grid>
                     </Grid>
                 </Grid>
@@ -707,7 +1104,7 @@
                                             <TextBlock Text="{Binding SearchPath}"
                                                        FontSize="12" Foreground="#9a9a9a" Margin="0,2,0,4"/>
                                             <WrapPanel>
-                                                <!-- 正则/文本标签 -->
+                                                <!-- 模式标签：文件名 / 正则 / 文本 -->
                                                 <Border CornerRadius="3" Padding="4,2" Margin="0,0,4,0">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
@@ -716,18 +1113,23 @@
                                                                 <DataTrigger Binding="{Binding IsRegex}" Value="True">
                                                                     <Setter Property="Background" Value="#cce5ff"/>
                                                                 </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsFileMode}" Value="True">
+                                                                    <Setter Property="Background" Value="#cce5ff"/>
+                                                                </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Border.Style>
-                                                    <TextBlock FontSize="10">
+                                                    <TextBlock FontSize="10"
+                                                               Text="{Binding SearchModeLabel}">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Setter Property="Foreground" Value="#9a9a9a"/>
-                                                                <Setter Property="Text" Value="文本"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsRegex}" Value="True">
                                                                         <Setter Property="Foreground" Value="#0e639c"/>
-                                                                        <Setter Property="Text" Value="正则"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsFileMode}" Value="True">
+                                                                        <Setter Property="Foreground" Value="#0e639c"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -761,6 +1163,20 @@
                                                         </Style>
                                                     </Border.Style>
                                                     <TextBlock Text="全词" FontSize="10" Foreground="#0e639c"/>
+                                                </Border>
+                                                <!-- 后缀（文件模式勾选的后缀过滤） -->
+                                                <Border Background="#cce5ff" CornerRadius="3" Padding="4,2" Margin="0,0,4,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding FileExtensions}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding FileExtensions, StringFormat='后缀: {0}'}" FontSize="10" Foreground="#0e639c"/>
                                                 </Border>
                                                 <!-- 文件过滤 -->
                                                 <Border Background="#f0f0f0" CornerRadius="3" Padding="4,2" Margin="0,0,4,0">
@@ -807,23 +1223,23 @@
                                             </WrapPanel>
                                         </StackPanel>
 
-                                        <!-- 中: 统计 -->
+                                        <!-- 中: 统计（标签随模式变化：文件/命中/匹配 ↔ 项/文件/文件夹） -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal"
                                                     VerticalAlignment="Center" Margin="16,0">
                                             <TextBlock FontSize="12" Foreground="#9a9a9a">
                                                 <Run Text="{Binding SearchedFiles, StringFormat='{}{0:N0}', Mode=OneWay}"
                                                      Foreground="#0e639c" FontWeight="Bold"/>
-                                                <Run Text=" 文件"/>
+                                                <Run Text="{Binding LabelA, Mode=OneWay}"/>
                                             </TextBlock>
                                             <TextBlock FontSize="12" Foreground="#9a9a9a" Margin="10,0,0,0">
                                                 <Run Text="{Binding FoundFiles, Mode=OneWay}"
                                                      Foreground="#0e639c" FontWeight="Bold"/>
-                                                <Run Text=" 命中"/>
+                                                <Run Text="{Binding LabelB, Mode=OneWay}"/>
                                             </TextBlock>
                                             <TextBlock FontSize="12" Foreground="#9a9a9a" Margin="10,0,0,0">
                                                 <Run Text="{Binding TotalMatches, Mode=OneWay}"
                                                      Foreground="#0e639c" FontWeight="Bold"/>
-                                                <Run Text=" 匹配"/>
+                                                <Run Text="{Binding LabelC, Mode=OneWay}"/>
                                             </TextBlock>
                                         </StackPanel>
 

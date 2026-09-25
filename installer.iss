@@ -1,5 +1,5 @@
 #define AppName "FastDog"
-#define AppVersion "1.5.0"
+#define AppVersion "1.8.0"
 #define AppPublisher "FastDog Team"
 #define AppURL "https://github.com/GoodZheng/fastdog"
 #define AppExeName "FastDog.exe"
@@ -19,12 +19,18 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+; 不沿用旧版本安装时的语言记录（默认 yes 会把上次 1.5.0 英文版的 english 记为默认），
+; 每次安装均按系统 UI 语言检测默认语言
+UsePreviousLanguage=no
 UninstallDisplayName={#AppName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
+; english 放首位作为默认回退：系统语言无匹配时用第一个声明的语言；
+; 简体中文系统（zh-CN）自动匹配 chinesesimplified。语言选择框默认选中系统语言。
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "installer\ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
