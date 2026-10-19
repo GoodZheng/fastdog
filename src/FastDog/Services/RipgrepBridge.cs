@@ -277,16 +277,26 @@ public sealed class RipgrepBridge : IDisposable
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("无法启动 rg.exe");
-        var count = 0;
-        var reader = process.StandardOutput;
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        // 挂到 _process 上，此阶段点「取消」时 KillProcess 才有目标；
+        // 原先进程只是局部变量，统计文件数阶段取消是个 no-op
+        _process = process;
+        using var killOnCancel = RegisterKillOnCancel(ct, process);
+        try
         {
-            var line = await reader.ReadLineAsync(ct);
-            if (line is not null)
+            var count = 0;
+            var reader = process.StandardOutput;
+            while (await reader.ReadLineAsync(ct) is not null)
                 count++;
+
+            ct.ThrowIfCancellationRequested();
+            await process.WaitForExitAsync(ct);
+            return count;
         }
-        await process.WaitForExitAsync(ct);
-        return count;
+        finally
+        {
+            if (ReferenceEquals(_process, process))
+                _process = null;
+        }
     }
 
     public void Dispose()
@@ -385,22 +395,44 @@ public sealed class RipgrepBridge : IDisposable
             StandardOutputEncoding = Encoding.UTF8
         };
 
-        _process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 rg.exe");
+        var process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 rg.exe");
+        _process = process;
 
-        var reader = _process.StandardOutput;
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        // 取消时立刻杀进程：token 无法中断已阻塞的管道读，只有杀进程产生的
+        // 管道 EOF 能让 ReadLineAsync 立即返回。捕获启动时的进程实例而非
+        // 回调时的 _process，防止误杀替换 _process 后的新搜索进程。
+        using var killOnCancel = RegisterKillOnCancel(ct, process);
+        try
         {
-            var line = await reader.ReadLineAsync(ct);
-            if (line is null) break;
-            var rgEvent = ParseRgLine(line);
-            if (rgEvent is not null)
-                yield return rgEvent;
+            var reader = process.StandardOutput;
+            while (await reader.ReadLineAsync(ct) is { } line)
+            {
+                RgEvent? rgEvent;
+                try
+                {
+                    rgEvent = ParseRgLine(line);
+                }
+                catch (Exception) when (ct.IsCancellationRequested)
+                {
+                    // 杀进程与读行存在竞态，可能读到被截断的半行 JSON，弃掉即可
+                    break;
+                }
+
+                if (rgEvent is not null)
+                    yield return rgEvent;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_process, process))
+                _process = null;
         }
 
-        if (!ct.IsCancellationRequested)
-            await _process.WaitForExitAsync(ct);
-        else
-            KillProcess();
+        // 取消必须以 OperationCanceledException 收场：杀进程后管道 EOF 会让
+        // 循环正常 break，若这里静默返回，SearchService 既不会触发
+        // SearchCompleted 也不会触发 SearchCancelled，UI 将永远停在「搜索中」
+        ct.ThrowIfCancellationRequested();
+        await process.WaitForExitAsync(ct);
     }
 
     /// <summary>
@@ -423,22 +455,39 @@ public sealed class RipgrepBridge : IDisposable
             StandardOutputEncoding = Encoding.UTF8
         };
 
-        _process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 rg.exe");
+        var process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 rg.exe");
+        _process = process;
 
-        var reader = _process.StandardOutput;
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        using var killOnCancel = RegisterKillOnCancel(ct, process);
+        try
         {
-            var line = await reader.ReadLineAsync(ct);
-            if (line is null) break;
-            if (line.Length > 0)
-                yield return line;
+            var reader = process.StandardOutput;
+            while (await reader.ReadLineAsync(ct) is { } line)
+            {
+                if (line.Length > 0)
+                    yield return line;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_process, process))
+                _process = null;
         }
 
-        if (!ct.IsCancellationRequested)
-            await _process.WaitForExitAsync(ct);
-        else
-            KillProcess();
+        ct.ThrowIfCancellationRequested();
+        await process.WaitForExitAsync(ct);
     }
+
+    /// <summary>
+    /// 注册「取消即杀进程」。token 触发时立刻杀掉该 rg 实例，使阻塞中的
+    /// 管道读以 EOF 解除，取消效果即时可见。
+    /// </summary>
+    private static CancellationTokenRegistration RegisterKillOnCancel(CancellationToken ct, Process process)
+        => ct.Register(static p =>
+        {
+            try { ((Process)p!).Kill(entireProcessTree: true); }
+            catch { /* 进程可能已自行退出或已被杀 */ }
+        }, process);
 
     public void KillProcess()
     {

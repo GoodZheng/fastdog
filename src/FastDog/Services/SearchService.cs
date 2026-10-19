@@ -82,7 +82,14 @@ public class SearchService
 
     public void Cancel()
     {
-        _cts?.Cancel();
+        try
+        {
+            _cts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // 搜索恰好收尾（finally 已释放 CTS）时点取消的竞态窗口，无需处理
+        }
         _bridge.KillProcess();
     }
 
