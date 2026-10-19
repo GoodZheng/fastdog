@@ -1,72 +1,68 @@
 @echo off
-chcp 65001 >nul
+setlocal
 echo ========================================
-echo   WordReminder æ„å»ºè„šæœ¬
-echo   å°†æ„å»ºå®‰è£…ç‰ˆå’Œç»¿è‰²ç‰ˆ
+echo   FastDog ¹¹½¨½Å±¾
+echo   ½«¹¹½¨°²×°°æºÍÂÌÉ«°æ
 echo ========================================
 echo.
 
-echo [1/4] æ¸…ç†æ—§çš„æ„å»ºæ–‡ä»¶...
+echo [1/4] ÇåÀí¾ÉµÄ¹¹½¨ÎÄ¼ş...
 if exist "publish" rmdir /s /q "publish"
 if not exist "release" mkdir "release"
+if not exist "installer" mkdir "installer"
 
 echo.
-echo [2/4] å‘å¸ƒåº”ç”¨ç¨‹åº...
-cd WordReminder
-call dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "../publish" -p:DebugType=None -p:DebugSymbols=false
+echo [2/4] ·¢²¼Ó¦ÓÃ³ÌĞò£¨µ¥ÎÄ¼ş×Ô°üº¬£©...
+dotnet publish src\FastDog\FastDog.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "publish" -p:DebugType=None -p:DebugSymbols=false
 
 if %errorlevel% neq 0 (
     echo.
-    echo å‘å¸ƒå¤±è´¥ï¼è¯·æ£€æŸ¥é”™è¯¯ä¿¡æ¯ã€‚
+    echo ·¢²¼Ê§°Ü£¡Çë¼ì²é´íÎóĞÅÏ¢¡£
     pause
     exit /b 1
 )
 
-cd ..
-
 echo.
-echo [3/4] åˆ¶ä½œç»¿è‰²ç‰ˆ...
-for /f "tokens=2 delims==" %%a in ('findstr "Version" WordReminder\WordReminder.csproj ^| findstr "<Version>"') do set "version=%%~a"
-set version=%version:<Version>=%
-set version=%version:</Version>=%
-set version=%version: =%
+echo [3/4] ÖÆ×÷ÂÌÉ«°æ£¨publish Ä¿Â¼´ò°üÎª zip£¬º¬ FastDog.exe + tools\rg.exe£©...
+for /f "tokens=3 delims=<>" %%a in ('findstr "<Version>" src\FastDog\FastDog.csproj') do set "version=%%a"
 
-copy /Y "publish\WordReminder.exe" "release\WordReminder-portable-%version%.exe" >nul
+powershell -NoProfile -Command "Compress-Archive -Path 'publish\FastDog.exe','publish\tools' -DestinationPath 'release\FastDog-portable-%version%.zip' -Force"
 
-if %errorlevel% equ 0 (
-    echo   ç»¿è‰²ç‰ˆ: release\WordReminder-portable-%version%.exe
-) else (
-    echo   ç»¿è‰²ç‰ˆåˆ¶ä½œå¤±è´¥ï¼
-)
-
-echo.
-echo [4/4] ç¼–è¯‘å®‰è£…ç‰ˆ...
-
-if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
-    echo   æ£€æµ‹åˆ° Inno Setupï¼Œå¼€å§‹ç¼–è¯‘å®‰è£…åŒ…...
-    "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" WordReminder\installer.iss
-    if %errorlevel% equ 0 (
-        echo   å®‰è£…ç‰ˆ: installer\WordReminder-Setup-%version%.exe
-    ) else (
-        echo   å®‰è£…ç‰ˆç¼–è¯‘å¤±è´¥ï¼
-    )
-) else (
-    echo   æœªæ£€æµ‹åˆ° Inno Setup Compilerã€‚
+if %errorlevel% neq 0 (
     echo.
-    echo   è¯·å…ˆå®‰è£… Inno Setup:
-    echo     ä¸‹è½½åœ°å€: https://jrsoftware.org/isdl.php
+    echo ÂÌÉ«°æÖÆ×÷Ê§°Ü£¡
+    pause
+    exit /b 1
 )
+echo   ÂÌÉ«°æ: release\FastDog-portable-%version%.zip
 
+echo.
+echo [4/4] ±àÒë°²×°°æ...
+if not exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
+    echo   Î´¼ì²âµ½ Inno Setup Compiler£¬Ìø¹ı°²×°°æ¡£
+    echo   ÏÂÔØµØÖ·: https://jrsoftware.org/isdl.php
+    goto :summary
+)
+echo   ¼ì²âµ½ Inno Setup£¬¿ªÊ¼±àÒë°²×°°ü...
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+if %errorlevel% neq 0 (
+    echo.
+    echo °²×°°æ±àÒëÊ§°Ü£¡
+    pause
+    exit /b 1
+)
+echo   °²×°°æ: installer\FastDog-Setup-%version%.exe
+
+:summary
 echo.
 echo ========================================
-echo   æ„å»ºå®Œæˆï¼
-echo   ç‰ˆæœ¬: %version%
+echo   ¹¹½¨Íê³É£¡°æ±¾: %version%
 echo.
-if exist "release\WordReminder-portable-%version%.exe" (
-    echo   ç»¿è‰²ç‰ˆ: release\WordReminder-portable-%version%.exe
+if exist "release\FastDog-portable-%version%.zip" (
+    echo   ÂÌÉ«°æ: release\FastDog-portable-%version%.zip
 )
-if exist "installer\WordReminder-Setup-%version%.exe" (
-    echo   å®‰è£…ç‰ˆ: installer\WordReminder-Setup-%version%.exe
+if exist "installer\FastDog-Setup-%version%.exe" (
+    echo   °²×°°æ: installer\FastDog-Setup-%version%.exe
 )
 echo ========================================
 echo.
