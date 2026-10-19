@@ -21,10 +21,6 @@ public class SearchService
         _cts = new CancellationTokenSource();
         try
         {
-            // 先统计待搜索文件总数
-            var fileListArgs = RipgrepBridge.BuildFileListArguments(query);
-            var totalFiles = await _bridge.CountFilesAsync(fileListArgs, _cts.Token);
-
             var arguments = RipgrepBridge.BuildArguments(query);
             var fileResults = new ConcurrentDictionary<string, SearchResult>();
             var foundFiles = 0;
@@ -64,7 +60,7 @@ public class SearchService
 
                     case RgEventType.Summary:
                         SearchCompleted?.Invoke(new SearchStats(
-                            totalFiles, foundFiles, rgEvent.Elapsed));
+                            rgEvent.SearchedFiles, foundFiles, rgEvent.Elapsed));
                         break;
                 }
             }

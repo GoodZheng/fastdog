@@ -47,6 +47,7 @@ public class JsonParserTests
         Assert.Equal(RgEventType.Summary, result.Type);
         Assert.Equal(3L, result.TotalMatches);
         Assert.Equal(2L, result.MatchedLines);
+        Assert.Equal(1L, result.SearchedFiles);
     }
 
     [Fact]

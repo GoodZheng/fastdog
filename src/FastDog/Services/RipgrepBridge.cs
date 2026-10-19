@@ -28,6 +28,7 @@ public class RgEvent
     public int MatchEnd { get; set; }
     public long TotalMatches { get; set; }
     public long MatchedLines { get; set; }
+    public long SearchedFiles { get; set; }
     public string Elapsed { get; set; } = string.Empty;
 }
 
@@ -82,15 +83,6 @@ public sealed class RipgrepBridge : IDisposable
         sb.Append(EscapeArg(query.SearchText)).Append(' ');
         sb.Append(EscapeArg(query.SearchPath));
 
-        return sb.ToString();
-    }
-
-    public static string BuildFileListArguments(SearchQuery query)
-    {
-        var sb = new StringBuilder();
-        sb.Append("--files ");
-        BuildFilterArgs(sb, query.FileFilter, query.ExcludeDirs, query.HiddenWhitelist);
-        sb.Append(EscapeArg(query.SearchPath));
         return sb.ToString();
     }
 
@@ -262,43 +254,6 @@ public sealed class RipgrepBridge : IDisposable
         return sb.ToString();
     }
 
-    public async Task<int> CountFilesAsync(string arguments, CancellationToken ct = default)
-    {
-        var rgPath = FindRgPath();
-        var psi = new ProcessStartInfo
-        {
-            FileName = rgPath,
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            StandardOutputEncoding = Encoding.UTF8
-        };
-
-        using var process = Process.Start(psi)
-            ?? throw new InvalidOperationException("无法启动 rg.exe");
-        // 挂到 _process 上，此阶段点「取消」时 KillProcess 才有目标；
-        // 原先进程只是局部变量，统计文件数阶段取消是个 no-op
-        _process = process;
-        using var killOnCancel = RegisterKillOnCancel(ct, process);
-        try
-        {
-            var count = 0;
-            var reader = process.StandardOutput;
-            while (await reader.ReadLineAsync(ct) is not null)
-                count++;
-
-            ct.ThrowIfCancellationRequested();
-            await process.WaitForExitAsync(ct);
-            return count;
-        }
-        finally
-        {
-            if (ReferenceEquals(_process, process))
-                _process = null;
-        }
-    }
-
     public void Dispose()
     {
         _process?.Kill();
@@ -375,6 +330,7 @@ public sealed class RipgrepBridge : IDisposable
             Type = RgEventType.Summary,
             TotalMatches = stats.GetProperty("matches").GetInt64(),
             MatchedLines = stats.GetProperty("matched_lines").GetInt64(),
+            SearchedFiles = stats.GetProperty("searches").GetInt64(),
             Elapsed = $"{elapsed.GetProperty("secs").GetInt64() + elapsed.GetProperty("nanos").GetInt64() / 1_000_000_000.0:F2}s"
         };
     }

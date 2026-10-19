@@ -169,24 +169,6 @@ public class ArgumentBuilderTests
     }
 
     [Fact]
-    public void BuildFileListArguments_HiddenWhitelist()
-    {
-        var query = new SearchQuery
-        {
-            SearchPath = @"E:\code",
-            SearchText = "test",
-            HiddenWhitelist = ".config"
-        };
-        var args = RipgrepBridge.BuildFileListArguments(query);
-        Assert.Contains("--files", args);
-        Assert.Contains("--hidden", args);
-        Assert.Contains("--glob *", args);
-        Assert.Contains("--glob .config", args);
-        Assert.Contains("--glob .config/**", args);
-        Assert.True(args.IndexOf("--glob !.*") < args.IndexOf("--glob .config"));
-    }
-
-    [Fact]
     public void BuildArguments_HiddenWhitelist_WithFileFilter_NoStarGlob()
     {
         // FileFilter 非空时由 --iglob 承担 include，不应再加 '*'（否则会破坏文件过滤）
