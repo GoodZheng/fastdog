@@ -19,7 +19,16 @@
 
 ---
 
-## [1.8.0]
+## [1.8.1] - 2026-10-19
+
+### 修复
+
+- **文本搜索「取消」按钮无反应**（`RipgrepBridge`/`SearchService`）：
+  - 文件统计阶段（`CountFilesAsync`）的 rg 进程只是局部变量、从未挂到 `_process`，此阶段点「取消」时 `KillProcess()` 落空——大目录下该阶段可持续数秒到数十秒，正是点取消最常见的时机；
+  - 主搜索阶段杀进程后管道 EOF 使迭代器**静默正常返回**（不抛 `OperationCanceledException`），`SearchService` 既不触发 `SearchCompleted` 也不触发 `SearchCancelled`，即使结果停了 UI 也永远停在「搜索中」；
+  - 修复：三个进程入口（`CountFilesAsync`/`SearchAsync`/`ListFilesAsync`）统一改为启动即捕获进程实例 + `ct.Register` 取消即杀（token 无法中断已阻塞的管道读，只有杀进程产生的 EOF 能立即解除），循环结束后 `ct.ThrowIfCancellationRequested()` 保证取消以异常收场、`SearchCancelled` 事件必然触发；顺带消除杀进程竞态下读到半行 JSON 的解析异常，及 `Cancel()` 撞上 CTS 释放窗口的 `ObjectDisposedException`。
+
+## [1.8.0] - 2026-09-25
 
 ### 新增
 
