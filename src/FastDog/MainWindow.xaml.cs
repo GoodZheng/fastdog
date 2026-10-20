@@ -595,6 +595,20 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Ctrl+W 关闭窗口（隐藏到托盘），类似微信。用 PreviewKeyDown 隧道事件：
+    /// 焦点无论在哪个控件（预览编辑器、搜索框等）都在窗口层最先收到，不被子控件吞键。
+    /// </summary>
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Key == Key.W && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            Close();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
     /// 由托盘「退出」菜单调用：置标志后真正关闭，触发 OnClosed 持久化会话/布局。
     /// </summary>
     public void Quit()

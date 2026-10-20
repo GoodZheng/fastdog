@@ -1,5 +1,5 @@
 #define AppName "FastDog"
-#define AppVersion "1.8.2"
+#define AppVersion "1.9.0"
 #define AppPublisher "FastDog Team"
 #define AppURL "https://github.com/GoodZheng/fastdog"
 #define AppExeName "FastDog.exe"
