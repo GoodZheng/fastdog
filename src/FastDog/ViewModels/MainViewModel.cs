@@ -437,6 +437,7 @@ public partial class MainViewModel : ObservableObject
 
         SearchResults.Clear();
         MatchLines.Clear();
+        DiscardPendingResults(); // 防缓冲中的旧结果刷入新一轮集合
         TotalFiles = 0;
         TotalMatches = 0;
         SearchedFiles = 0;
@@ -976,20 +977,64 @@ public partial class MainViewModel : ObservableObject
 
     // --- 事件处理 ---
 
+    // 文本搜索结果批量缓冲：rg 流线程逐文件推送，若逐条 Dispatcher.Invoke 且每次
+    // 全量 Sum，命中文件多时既压垮 UI 消息队列又形成 O(n²) 求和。改为缓冲后按
+    // Background 优先级批量刷入，MatchCount 增量累加替代全量求和。
+    private readonly object _pendingResultLock = new();
+    private List<SearchResult>? _pendingResults;
+    private int _pendingMatchDelta;
+    private volatile bool _flushQueued;
+
     private void OnResultReceived(SearchResult result)
     {
-        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        lock (_pendingResultLock)
         {
+            _pendingResults ??= [];
+            _pendingResults.Add(result);
+            _pendingMatchDelta += result.MatchCount;
+        }
+        if (_flushQueued) return;
+        _flushQueued = true;
+        System.Windows.Application.Current.Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Background, FlushPendingResults);
+    }
+
+    /// <summary>把缓冲中的结果批量刷入集合（仅 UI 线程调用）。</summary>
+    private void FlushPendingResults()
+    {
+        _flushQueued = false;
+        List<SearchResult> batch;
+        int matchDelta;
+        lock (_pendingResultLock)
+        {
+            batch = _pendingResults ?? [];
+            matchDelta = _pendingMatchDelta;
+            _pendingResults = null;
+            _pendingMatchDelta = 0;
+        }
+        if (batch.Count == 0) return;
+        foreach (var result in batch)
             SearchResults.Add(result);
-            TotalFiles = SearchResults.Count;
-            TotalMatches = SearchResults.Sum(r => r.MatchCount);
-        });
+        TotalFiles = SearchResults.Count;
+        TotalMatches += matchDelta;
+    }
+
+    /// <summary>丢弃缓冲中的未刷入结果（新一轮搜索开始清空集合时调用，防旧结果混入）。</summary>
+    private void DiscardPendingResults()
+    {
+        lock (_pendingResultLock)
+        {
+            _pendingResults = null;
+            _pendingMatchDelta = 0;
+        }
+        _flushQueued = false;
     }
 
     private void OnSearchCompleted(SearchStats stats)
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
+            FlushPendingResults(); // 先收尾缓冲，保证本条历史记录的统计完整
             IsSearching = false;
             SearchedFiles = stats.SearchedFiles;
             ElapsedTime = stats.Elapsed;
@@ -1031,6 +1076,7 @@ public partial class MainViewModel : ObservableObject
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
+            FlushPendingResults(); // 收尾缓冲：取消前已收到的结果照常显示
             IsSearching = false;
             StatusText = $"搜索已取消 | 找到 {TotalFiles} 个文件，共 {TotalMatches} 处匹配";
         });

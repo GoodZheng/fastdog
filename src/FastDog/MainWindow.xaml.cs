@@ -172,16 +172,11 @@ public partial class MainWindow : Window
         textArea.TextView.BackgroundRenderers.Add(_markerService);
         textArea.TextView.LineTransformers.Add(_markerService);
 
-        foreach (var match in vm.SelectedResult.Matches)
-        {
-            if (match.GlobalMatchStart < 0 || match.GlobalMatchEnd <= match.GlobalMatchStart)
-                continue;
-            if (match.GlobalMatchEnd > editor.Document.TextLength)
-                continue;
-
-            _markerService.Create(match.GlobalMatchStart,
-                match.GlobalMatchEnd - match.GlobalMatchStart);
-        }
+        // 批量建标记：内部只在结尾失效渲染层一次（区间校验在 CreateBatch 内做）。
+        // 逐条 Create 会各自 InvalidateLayer，匹配数多时触发 N 轮全量可视行重建+着色，
+        // 曾把 UI 线程连续占用超过 5 秒导致 AppHangB1 卡死退出。
+        _markerService.CreateBatch(vm.SelectedResult.Matches
+            .Select(m => (m.GlobalMatchStart, m.GlobalMatchEnd - m.GlobalMatchStart)));
     }
 
     private void ClearMarkers(TextEditor editor)

@@ -19,6 +19,13 @@
 
 ---
 
+## [1.9.1] - 2026-11-11
+
+### 修复
+
+- **浏览搜索结果时预览卡死（AppHangB1）**（`TextMarkerService`/`MainWindow.xaml.cs`）：点选结果文件后 UI 停止响应超过 5 秒，被 Windows 判定为挂起并强制关闭进程（事件日志 AppHangB1，已用完整转储实锤）。根因：`ApplyMatchMarkers` 对每个匹配各调用一次 `TextMarkerService.Create`，而 `Create` 内部每次都 `InvalidateLayer`——AvalonEdit 会因此丢弃全部可视行并整档重新着色，53 个匹配就是 53 轮全量渲染，连续点选文件时渲染轮数成倍叠加，UI 线程连续占用超过 5 秒。改为 `CreateBatch` 批量建标记：循环内只添加 segment，结尾只失效渲染层一次，渲染轮数从 N 轮压回 1 轮。
+- **文本搜索结果推送的 O(n²) 队列压力**（`MainViewModel`）：rg 流线程每命中一个文件就同步 `Dispatcher.Invoke` 一次，且每次都对全部结果重新 `Sum` 匹配数——命中几千文件时 UI 消息队列被压垮、求和退化为 O(n²)。改为后台缓冲 + 按 Background 优先级批量刷入集合，匹配数增量累加替代全量求和；搜索开始清空时丢弃缓冲防旧结果混入，完成/取消时先收尾缓冲保证历史统计完整。
+
 ## [1.9.0] - 2026-10-20
 
 ### 新增

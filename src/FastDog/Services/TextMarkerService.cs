@@ -25,17 +25,30 @@ public sealed class TextMarkerService : IBackgroundRenderer, IVisualLineTransfor
 
     public KnownLayer Layer => KnownLayer.Background;
 
-    public TextMarker Create(int startOffset, int length)
+    /// <summary>
+    /// 批量创建高亮标记，全部添加完成后只失效渲染层一次。
+    /// 逐个失效会让 AvalonEdit 每次都丢弃全部可视行并整档重新着色，
+    /// 匹配数多时渲染轮数失控，曾把 UI 线程连续占用超过 5 秒触发 AppHangB1 卡死。
+    /// 越界/无效区间自动跳过，返回是否实际添加了标记。
+    /// </summary>
+    public bool CreateBatch(IEnumerable<(int StartOffset, int Length)> ranges)
     {
-        var marker = new TextMarker
+        var textLength = _textArea.Document?.TextLength ?? 0;
+        var added = false;
+        foreach (var (start, length) in ranges)
         {
-            StartOffset = startOffset,
-            Length = length,
-            BackgroundColor = Colors.Yellow
-        };
-        _segments.Add(marker);
-        _textArea.TextView.InvalidateLayer(KnownLayer.Background);
-        return marker;
+            if (start < 0 || length <= 0 || start + length > textLength) continue;
+            _segments.Add(new TextMarker
+            {
+                StartOffset = start,
+                Length = length,
+                BackgroundColor = Colors.Yellow
+            });
+            added = true;
+        }
+        if (added)
+            _textArea.TextView.InvalidateLayer(KnownLayer.Background);
+        return added;
     }
 
     public void RemoveAll()
